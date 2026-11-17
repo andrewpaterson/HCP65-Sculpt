@@ -66,6 +66,9 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //spheres dropped by clicking the left button where the pointer is onto the plane of the screen, through what the view
 //turns about: at the start that's z = 0, the view looking along -z.  The spheres are joined by a smooth union, so they
 //blend where they meet.  Delete, or X, takes the spheres away.  Clicks drop nothing while another shape is shown.
+//
+//Save writes all of it but the view to one file (a CSculptDocument), and Open reads one, or a file of a material alone;
+//ExportMaterial writes the material alone, as another program reads it (ProceduralLib's ReadSolidMaterial).
 class CSculptPage : public CGridContainer
 {
 CONSTRUCTABLE(CSculptPage);
@@ -102,6 +105,9 @@ public:
 	void				PanelChanged(void);
 	void				SetMaterial(Ptr<CSolidTexture> pSurface);
 	void				WeatherMaterial(void);
+	bool				Save(const char* szFilename);
+	bool				Open(const char* szFilename);
+	bool				ExportMaterial(const char* szFilename);
 	void				MaterialChanged(void);
 	bool				IsCoarse(void);
 	void				BakeFine(void);

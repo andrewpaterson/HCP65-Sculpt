@@ -241,8 +241,17 @@ Around it
     seventh: it's a material round another on a shape, so it's File's Weather, which weathers the material there is on
     the shape shown.  A weathered material has Cavity nodes, of that shape.
 21. File's New, Open, Save, Save As: the one file.
+    Done.  A Sculpt file is a CSculptDocument (the graph with its nodes where they were, the spheres dropped, the
+    panel's settings) written with StandardLib's new WriteNamedObjectFile: a chunk file of the objects, named DRG as
+    every object file is.  File has Open, Save, Save As and Export Material, each through a file chooser from the
+    window's tick, and Sculpt opens a file given on its command line.  New stays the menu of materials.  Not kept:
+    the view (where it's turned to), and the history for undo.  Opening a file isn't undone.
 22. A material as a configuration other programs use: the saved graph without Sculpt's node positions, read by one
     call that gives its top texture.  SolidMaterials' functions stay, as the code way of making the same thing.
+    Done (ProceduralLib's SolidMaterialFile.h): WriteSolidMaterial writes the graph a texture is the top of to a file
+    and ReadSolidMaterial reads one back, which is all another program calls.  A material's file holds only what its
+    surface is made of: nodes left unlinked in Sculpt aren't in it.  Sculpt's Export Material writes one, and its Open
+    reads one as well as its own files.  SolidMaterials' functions are as they were.
 23. Tune the seven materials in Sculpt; the gallery again.
 24. Clean up; the plan's Done notes.
 

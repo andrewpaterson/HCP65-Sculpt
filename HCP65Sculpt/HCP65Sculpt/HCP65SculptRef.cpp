@@ -37,7 +37,8 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 // HCP65 Sculpt on the reference screen, drawn into memory with nothing
 // on any display: for looking at what it draws where there's no screen,
 // with HCP65_SCULPT_SNAPSHOT=file and HCP65_SCULPT_EXIT (see CSculptApp).
-// Run from the HCP65Sculpt directory, as on a screen.  Nothing outside
+// Run from the HCP65Sculpt directory, as on a screen, with a file to
+// open as its first argument if it's to have one.  Nothing outside
 // it can press a key or move the pointer.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -59,7 +60,7 @@ int main(int argc, char* argv[])
 		pNativeFactory->SetScreenArea(&cScreen);
 
 		cRefInput.Init();
-		bResult = RunSculptApp(&pNativeFactory, &cRefInput, "../../../CommonLibraries/Libraries/WinInputLib/xml");
+		bResult = RunSculptApp(&pNativeFactory, &cRefInput, "../../../CommonLibraries/Libraries/WinInputLib/xml", (argc > 1) ? argv[1] : NULL);
 		cRefInput.Kill();
 
 		ORoot()->Remove(pNativeFactory);

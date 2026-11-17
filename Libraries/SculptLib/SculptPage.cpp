@@ -20,11 +20,14 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 ** ------------------------------------------------------------------------ **/
 #include "BaseLib/Float4x4.h"
 #include "StandardLib/ClassDefines.h"
+#include "StandardLib/NamedObjectFile.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/Camera.h"
 #include "SupportLib/Instance.h"
 #include "SupportLib/ShapeSmoothUnion.h"
+#include "ProceduralLib/SolidMaterialFile.h"
 #include "ProceduralLib/SolidMaterials.h"
+#include "SculptDocument.h"
 #include "SupportLib/Box.h"
 #include "SupportLib/ShapeUnion.h"
 #include "SupportLib/Sphere.h"
@@ -405,6 +408,84 @@ void CSculptPage::WeatherMaterial(void)
 	{
 		SetMaterial(MakeSolidWeathered(mpNodes->GetGraph()->GetSurface(), pShape, SCULPT_MATERIAL_SEED));
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The material's graph with its nodes where they are, the spheres
+// dropped and the panel's settings, written to szFilename (with the
+// object files' extension, given or not).  What's written is the page's
+// own objects: nothing is copied.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptPage::Save(const char* szFilename)
+{
+	Ptr<CSculptDocument>	pDocument;
+
+	pDocument = gcObjects.Malloc<CSculptDocument>(SCULPT_DOCUMENT_NAME);
+	if (pDocument.IsNull())
+	{
+		return false;
+	}
+	pDocument->Init();
+	pDocument->mpGraph = mpNodes->GetGraph();
+	pDocument->mpSculpted = mpSculpted;
+	pDocument->miSpheres = miSpheres;
+	pDocument->miShape = mpPanel->GetShape();
+	pDocument->miShow = mpPanel->GetShow();
+	pDocument->miSamples = mpPanel->GetSamples();
+	pDocument->mfRelief = mpPanel->GetRelief();
+	mpPanel->GetLight(&pDocument->msLight);
+	return WriteNamedObjectFile(&pDocument, szFilename);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A Sculpt file read: its graph is shown, its spheres are the sculpted
+// shape and its settings the panel's.  A file of a material alone is
+// its graph, arranged, and nothing else changes.  False, with nothing
+// changed, if the file is neither.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptPage::Open(const char* szFilename)
+{
+	Ptr<CSculptDocument>	pDocument;
+	Ptr<CSolidTexture>		pSurface;
+
+	AddSculptConstructors();
+	pDocument = Ptr<CSculptDocument>(dynamic_cast<CSculptDocument*>(ReadNamedObjectFile(szFilename, SCULPT_DOCUMENT_NAME)));
+	if (pDocument.IsNull() || pDocument->mpGraph.IsNull())
+	{
+		pSurface = ReadSolidMaterial(szFilename);
+		if (pSurface.IsNull())
+		{
+			return false;
+		}
+		SetMaterial(pSurface);
+		return true;
+	}
+
+	mpSculpted = pDocument->mpSculpted;
+	miSpheres = pDocument->miSpheres;
+	mpPanel->SetShape((ESculptShape)pDocument->miShape);
+	mpPanel->SetShow((ESculptShow)pDocument->miShow);
+	mpPanel->SetBake(pDocument->miSamples, pDocument->mfRelief, &pDocument->msLight);
+	mpNodes->SetGraph(pDocument->mpGraph);
+	Rebake(true);
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The material alone, as another program reads it.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptPage::ExportMaterial(const char* szFilename)
+{
+	return WriteSolidMaterial(mpNodes->GetGraph()->GetSurface(), szFilename);
 }
 
 

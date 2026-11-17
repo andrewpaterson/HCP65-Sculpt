@@ -31,7 +31,9 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 #include "SupportLib/TrueTypeFontFactory.h"
 #include "WindowLib/Canvas.h"
 #include "WindowLib/ClearCanvasDraw.h"
+#include "WindowLib/JewelImageGenerator.h"
 #include "WindowLib/JewelTheme.h"
+#include "WindowLib/MessageDialog.h"
 #include "SculptLib/SculptMaterials.h"
 #include "SculptTick.h"
 #include "SculptApp.h"
@@ -54,6 +56,8 @@ void CSculptApp::Init(void)
 	mbValid = false;
 	mbInputs = false;
 	mbExit = false;
+	mszFile.Init();
+	meAsked = SA_Nothing;
 	miSnapshotTicks = (getenv(SCULPT_SNAPSHOT_VARIABLE) != NULL) ? SCULPT_SNAPSHOT_TICKS : -1;
 
 	PostInit();
@@ -115,9 +119,27 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A Sculpt file, or a material's, opened as File's Open would: it's the
+// file Save then saves to.  False if it's neither.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptApp::OpenFile(const char* szFilename)
+{
+	if (!mpPage->Open(szFilename))
+	{
+		return false;
+	}
+	mszFile.Set(szFilename);
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The menu bar along the top: File has New (a material to start from),
-// Weather (the material there is, weathered on the shape shown) and
-// Exit; Edit has Undo and Redo of the material's graph; and Add the nodes
+// Open, Save and Save As (a Sculpt file), Export Material (the material
+// alone, for another program), Weather (the material there is, weathered
+// on the shape shown) and Exit; Edit has Undo and Redo of the material's graph; and Add the nodes
 // that can be added to it (the page's nodes make it and take its clicks).
 //
 //////////////////////////////////////////////////////////////////////////
@@ -125,7 +147,12 @@ void CSculptApp::MakeMenus(void)
 {
 	Ptr<CMenuContainer>	pFileMenu;
 	Ptr<CMenuContainer>	pEditMenu;
+	CColourFormatHelper	cFormat;
 	size				i;
+
+	mpWindow->GetColourFormat(&cFormat);
+	mpFolderIcon = CJewelImageGenerator::CreateFolder(mpTheme->GetColour(TC_Icon), &cFormat);
+	mpFileIcon = CJewelImageGenerator::CreateFile(mpTheme->GetColour(TC_Icon), &cFormat);
 
 	mpMenuBar = OMalloc<CMenuBar>(mpWindow, mpTheme);
 	mpMenuBar->SetAlignment(CSH_Stretch, CSV_Stretch);
@@ -138,6 +165,11 @@ void CSculptApp::MakeMenus(void)
 	}
 	mpNewMenu->GetItemClickEvent()->Add(this, &CSculptApp::NewMenuItemClicked);
 	pFileMenu->AddItem("New", NULL, mpNewMenu);
+	mpOpen = pFileMenu->AddItem("Open...", mpFileIcon);
+	mpSave = pFileMenu->AddItem("Save");
+	mpSaveAs = pFileMenu->AddItem("Save As...");
+	mpExport = pFileMenu->AddItem("Export Material...");
+	pFileMenu->AddSeparator();
 	mpWeather = pFileMenu->AddItem("Weather");
 	pFileMenu->AddSeparator();
 	mpExit = pFileMenu->AddItem("Exit");
@@ -162,6 +194,15 @@ void CSculptApp::Class(void)
 	M_Pointer(mpMain);
 	M_Pointer(mpMenuBar);
 	M_Pointer(mpExit);
+	M_Pointer(mpOpen);
+	M_Pointer(mpSave);
+	M_Pointer(mpSaveAs);
+	M_Pointer(mpExport);
+	M_Pointer(mpFolderIcon);
+	M_Pointer(mpFileIcon);
+	M_Pointer(mpChooser);
+	U_String(mszFile);
+	U_Enum(meAsked);
 	M_Pointer(mpNewMenu);
 	M_Pointer(mpWeather);
 	M_Pointer(mpUndo);
@@ -191,6 +232,7 @@ void CSculptApp::Free(void)
 		mcComponentInput.Kill();
 	}
 	msDialogLook.Kill();
+	mszFile.Kill();
 }
 
 
@@ -248,10 +290,114 @@ void CSculptApp::Tick(Ptr<CWindow> pWindow)
 	{
 		Snapshot(pWindow);
 	}
+	DoAsked();
 	if (mbExit)
 	{
 		pWindow->Stop();
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What a menu item asked for is done, once.  A file that can't be read
+// or written is said.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptApp::DoAsked(void)
+{
+	ESculptAsked	eAsked;
+	CChars			szChosen;
+
+	eAsked = meAsked;
+	meAsked = SA_Nothing;
+	if (eAsked == SA_Nothing)
+	{
+		return;
+	}
+
+	szChosen.Init();
+	if (eAsked == SA_Open)
+	{
+		if (ChooseFile("Open", false, mszFile.Text(), &szChosen))
+		{
+			if (!OpenFile(szChosen.Text()))
+			{
+				Report("Couldn't open it: it isn't a Sculpt file or a material's.", szChosen.Text());
+			}
+		}
+	}
+	else if (eAsked == SA_Export)
+	{
+		if (ChooseFile("Export Material", true, mszFile.Text(), &szChosen) && !mpPage->ExportMaterial(szChosen.Text()))
+		{
+			Report("Couldn't write the material.", szChosen.Text());
+		}
+	}
+	else if ((eAsked == SA_Save) && !mszFile.Empty())
+	{
+		if (!mpPage->Save(mszFile.Text()))
+		{
+			Report("Couldn't save.", mszFile.Text());
+		}
+	}
+	else if (ChooseFile("Save As", true, mszFile.Text(), &szChosen))
+	{
+		if (mpPage->Save(szChosen.Text()))
+		{
+			mszFile.Set(szChosen.Text());
+		}
+		else
+		{
+			Report("Couldn't save.", szChosen.Text());
+		}
+	}
+	szChosen.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A file chooser, starting at szStart: the file chosen, or false if it
+// was cancelled.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptApp::ChooseFile(const char* szTitle, bool bSave, const char* szStart, CChars* pszChosen)
+{
+	static SFileChooserType	asTypes[] =
+	{
+		{ "Sculpt and Material Files (*.DRG)", "DRG" },
+		{ "All Files", NULL },
+	};
+	bool	bChosen;
+
+	mpChooser = OMalloc<CFileChooser>(mpWindow, &msDialogLook, szTitle, bSave, szStart, asTypes, sizeof(asTypes) / sizeof(SFileChooserType), mpFolderIcon, mpFileIcon);
+	bChosen = mpChooser->Show();
+	if (bChosen)
+	{
+		pszChosen->Set(mpChooser->GetChosen());
+	}
+	mpChooser = NULL;
+	return bChosen;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Says what went wrong with a file, in a dialog.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptApp::Report(const char* szMessage, const char* szFilename)
+{
+	Ptr<CMessageDialog>	pMessage;
+	CChars				szText;
+
+	szText.Init(szMessage);
+	szText.Append("\n");
+	szText.Append(szFilename);
+	pMessage = OMalloc<CMessageDialog>(mpWindow, &msDialogLook, "HCP65 Sculpt", szText.Text());
+	pMessage->Show();
+	szText.Kill();
 }
 
 
@@ -285,7 +431,7 @@ void CSculptApp::Snapshot(Ptr<CWindow> pWindow)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Exit only asks: the window's tick does it.
+// Exit and the file items only ask: the window's tick does them.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptApp::MenuItemClicked(CMenuItem* pcItem)
@@ -293,6 +439,22 @@ void CSculptApp::MenuItemClicked(CMenuItem* pcItem)
 	if (&mpExit == pcItem)
 	{
 		mbExit = true;
+	}
+	else if (&mpOpen == pcItem)
+	{
+		meAsked = SA_Open;
+	}
+	else if (&mpSave == pcItem)
+	{
+		meAsked = SA_Save;
+	}
+	else if (&mpSaveAs == pcItem)
+	{
+		meAsked = SA_SaveAs;
+	}
+	else if (&mpExport == pcItem)
+	{
+		meAsked = SA_Export;
 	}
 	else if (&mpWeather == pcItem)
 	{
@@ -366,10 +528,12 @@ void KillSculptGlobals(void)
 //
 // The app (its window and input) is held by the root while it runs on
 // the host's window factory and input.  szInputDirectory has
-// WinInputLib's XML device descriptions.
+// WinInputLib's XML device descriptions.  szFilename, if it isn't NULL,
+// is a file to open to start with: one that can't be is logged, and
+// Sculpt starts as it would with none.
 //
 //////////////////////////////////////////////////////////////////////////
-bool RunSculptApp(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNativeInput, const char* szInputDirectory)
+bool RunSculptApp(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNativeInput, const char* szInputDirectory, const char* szFilename)
 {
 	Ptr<CSculptApp>	pApp;
 	bool			bResult;
@@ -379,7 +543,12 @@ bool RunSculptApp(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNativeI
 
 	pApp = OMalloc<CSculptApp>();
 	ORoot()->Add(pApp);
-	bResult = pApp->Setup(pcNativeFactory, pcNativeInput, szInputDirectory) && pApp->Run();
+	bResult = pApp->Setup(pcNativeFactory, pcNativeInput, szInputDirectory);
+	if (bResult && (szFilename != NULL) && !pApp->OpenFile(szFilename))
+	{
+		gcLogger.Error2(__METHOD__, " Could not open [", szFilename, "].", NULL);
+	}
+	bResult = bResult && pApp->Run();
 	ORoot()->Remove(pApp);
 	pApp = NULL;
 

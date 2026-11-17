@@ -30,7 +30,8 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////////
 //
 // HCP65 Sculpt on Windows.  Run from the HCP65Sculpt directory: the
-// resources and WinInputLib's XML are found relative to it.
+// resources and WinInputLib's XML are found relative to it.  Its command
+// line, if it has one, is a file to open.
 //
 //////////////////////////////////////////////////////////////////////////
 int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
@@ -52,7 +53,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 		cWinInput.Init(NULL, false);
 		pNativeFactory->SetRawInput(WinRawInputCallback, cWinInput.GetRaw());
 
-		bResult = RunSculptApp(&pNativeFactory, &cWinInput, "../../../CommonLibraries/Libraries/WinInputLib/xml");
+		bResult = RunSculptApp(&pNativeFactory, &cWinInput, "../../../CommonLibraries/Libraries/WinInputLib/xml", ((lpCmdLine != NULL) && (lpCmdLine[0] != '\0')) ? lpCmdLine : NULL);
 
 		pNativeFactory->SetRawInput(NULL, NULL);
 		cWinInput.Kill();

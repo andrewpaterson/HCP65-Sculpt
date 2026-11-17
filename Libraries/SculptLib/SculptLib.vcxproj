@@ -28,6 +28,7 @@
     <ClCompile Include="SculptRamp.cpp" />
     <ClCompile Include="SculptPanel.cpp" />
     <ClCompile Include="SculptMaterials.cpp" />
+    <ClCompile Include="SculptDocument.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptPage.h" />
@@ -39,6 +40,7 @@
     <ClInclude Include="SculptRamp.h" />
     <ClInclude Include="SculptPanel.h" />
     <ClInclude Include="SculptMaterials.h" />
+    <ClInclude Include="SculptDocument.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E262449F-EA8D-4BAB-B5DB-331976595327}</ProjectGuid>

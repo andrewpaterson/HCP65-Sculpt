@@ -27,6 +27,7 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 #include "InputLib/NativeInput.h"
 #include "WindowLib/ComponentInput.h"
 #include "WindowLib/Dialog.h"
+#include "WindowLib/FileChooser.h"
 #include "WindowLib/GridContainer.h"
 #include "WindowLib/MenuBar.h"
 #include "WindowLib/NativeWindowFactory.h"
@@ -39,10 +40,22 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 #define SCULPT_SNAPSHOT_TICKS	10	//Ticks before HCP65_SCULPT_SNAPSHOT's image is saved, so everything has been laid out and drawn.
 
 
+//What a menu item asked for that the window's tick does, as each shows a dialog.
+enum ESculptAsked
+{
+	SA_Nothing,
+	SA_Open,		//Asks for a Sculpt file, or a material's, and opens it.
+	SA_Save,		//Saves to the file last opened or saved to; asks for one if there's none.
+	SA_SaveAs,		//Asks for a file and saves to it.
+	SA_Export,		//Asks for a file and writes the material alone to it, as another program reads it.
+};
+
+
 //HCP65 Sculpt: its window (a menu bar over its page, SculptLib's CSculptPage), the menu's items and the input that drives it.  main makes it, adds
 //it to the root, runs it and removes it from the root.
 //
-//What a menu item asks for is done from the window's tick (Tick), not from the click, as a dialog reads the input itself.
+//What a menu item asks for is done from the window's tick (Tick), not from the click, as a dialog reads the input itself:
+//File's Open, Save, Save As and Export Material, which ask for a file.
 //
 //From the environment: HCP65_SCULPT_SNAPSHOT=file saves the window as a PNG there once it's been drawn, and
 //HCP65_SCULPT_EXIT then closes it, which is how it's looked at on the reference screen (HCP65SculptRef).
@@ -57,6 +70,15 @@ protected:
 	Ptr<CGridContainer>			mpMain;  //The menu bar over the page.
 	Ptr<CMenuBar>				mpMenuBar;
 	Ptr<CMenuItem>				mpExit;
+	Ptr<CMenuItem>				mpOpen;
+	Ptr<CMenuItem>				mpSave;
+	Ptr<CMenuItem>				mpSaveAs;
+	Ptr<CMenuItem>				mpExport;
+	Ptr<CImageCel>				mpFolderIcon;  //The file chooser's.
+	Ptr<CImageCel>				mpFileIcon;
+	Ptr<CFileChooser>			mpChooser;  //While Open's, Save As's or Export's is shown.
+	CChars						mszFile;  //The Sculpt file last opened or saved to, empty if none has been.
+	ESculptAsked				meAsked;  //What to do at the next tick.
 	Ptr<CMenuContainer>			mpNewMenu;  //A material to start from: its items are in SculptMaterials.h's order.
 	Ptr<CMenuItem>				mpWeather;
 	Ptr<CMenuItem>				mpUndo;
@@ -74,6 +96,7 @@ protected:
 public:
 	void	Init(void);
 	bool	Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNativeInput, const char* szInputDirectory);
+	bool	OpenFile(const char* szFilename);
 	void	Class(void) override;
 	void	Free(void) override;
 
@@ -88,12 +111,15 @@ public:
 protected:
 	void	MakeMenus(void);
 	void	Snapshot(Ptr<CWindow> pWindow);
+	void	DoAsked(void);
+	bool	ChooseFile(const char* szTitle, bool bSave, const char* szStart, CChars* pszChosen);
+	void	Report(const char* szMessage, const char* szFilename);
 };
 
 
 void	InitSculptGlobals(void);
 void	KillSculptGlobals(void);
-bool	RunSculptApp(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNativeInput, const char* szInputDirectory);
+bool	RunSculptApp(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNativeInput, const char* szInputDirectory, const char* szFilename);
 
 
 #endif // __SCULPT_APP_H__

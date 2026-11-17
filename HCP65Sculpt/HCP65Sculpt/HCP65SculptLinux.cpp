@@ -28,7 +28,8 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////////
 //
 // HCP65 Sculpt on Linux.  Run from the HCP65Sculpt directory: the
-// resources and WinInputLib's XML are found relative to it.
+// resources and WinInputLib's XML are found relative to it.  Its first
+// argument, if it has one, is a file to open.
 //
 //////////////////////////////////////////////////////////////////////////
 int main(int argc, char* argv[])
@@ -50,7 +51,7 @@ int main(int argc, char* argv[])
 			cX11Input.Init();
 			pNativeFactory->SetInput(&cX11Input);
 
-			bResult = RunSculptApp(&pNativeFactory, &cX11Input, "../../../CommonLibraries/Libraries/WinInputLib/xml");
+			bResult = RunSculptApp(&pNativeFactory, &cX11Input, "../../../CommonLibraries/Libraries/WinInputLib/xml", (argc > 1) ? argv[1] : NULL);
 
 			pNativeFactory->SetInput(NULL);
 			cX11Input.Kill();

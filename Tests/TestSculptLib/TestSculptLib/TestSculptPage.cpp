@@ -20,10 +20,12 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 ** ------------------------------------------------------------------------ **/
 #include <stdlib.h>
 #include <string.h>
+#include "BaseLib/FileUtil.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/PNGWriter.h"
 #include "WindowLib/Canvas.h"
 #include "ProceduralLib/SolidChannel.h"
+#include "ProceduralLib/SolidMaterialFile.h"
 #include "ProceduralLib/SolidMaterials.h"
 #include "SculptLib/SculptMaterials.h"
 #include "SculptLib/SculptPage.h"
@@ -266,6 +268,149 @@ void TestSculptPageSpheres(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The red of pTexture at a point.
+//
+//////////////////////////////////////////////////////////////////////////
+static float32 TestSculptPageRed(Ptr<CSolidTexture> pTexture)
+{
+	SSolidSample	sSample;
+	SFloat32Vec3	sPosition;
+	SFloat32Vec3	sNormal;
+
+	sPosition.Init(0.3f, -0.2f, 0.7f);
+	sNormal.Init(0, 0, 1);
+	pTexture->Sample(&sPosition, &sNormal, 0.01f, &sSample);
+	return sSample.sColour.x;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Never ticked: the window is laid out, not shown.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestSculptPageNoTick(Ptr<CWindow> pWindow, int32 iTick, void* pvData)
+{
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Saved and opened, the page is as it was: the material, its nodes
+// where they were, and the panel's settings.  The material exported is
+// what another program reads, and a file of one opens as a graph.  A
+// file that's neither changes nothing.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptPageFile(void)
+{
+	char		szDirectory[] = "Output" _FS_ "TestSculptPageFile";
+	char		szFile[] = "Output" _FS_ "TestSculptPageFile" _FS_ "Mine";
+	char		szMaterial[] = "Output" _FS_ "TestSculptPageFile" _FS_ "Rust.DRG";
+	CFileUtil	cFileUtil;
+
+	AssertTrue(cFileUtil.RemoveDir(szDirectory));
+	AssertTrue(cFileUtil.TouchDir(szDirectory));
+
+	ObjectsInit();
+	{
+		Ptr<CWinRefWindowFactory>	pFactory;
+		Ptr<CWindow>				pWindow;
+		Ptr<CFontColours>			pFontColours;
+		Ptr<CWindowTheme>			pTheme;
+		Ptr<CSculptPage>			pPage;
+		Ptr<CSculptGraph>			pGraph;
+		Ptr<CSolidTexture>			pRead;
+		SDialogLook					sLook;
+		SFloat32Vec3				sLight;
+		float32						fRed;
+		size						uiNodes;
+
+		pWindow = SculptTestWindow(pFactory, 1000, 700, TestSculptPageNoTick, NULL);
+		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
+		pPage = OMalloc<CSculptPage>(pWindow, &sLook, pFontColours, false);
+		pWindow->SetContainer(pPage);
+		pWindow->Layout();
+
+		//Rust on a box, its height shown, a node moved and a link taken off.
+		pPage->SetMaterial(MakeSolidRust(4));
+		pGraph = pPage->GetNodes()->GetGraph();
+		uiNodes = pGraph->NumNodes();
+		pGraph->GetNode(2)->Place(-123, 45);
+		pGraph->Unlink(&pGraph->GetNode(1), 0);
+		fRed = TestSculptPageRed(pGraph->GetSurface());
+		sLight.Init(1, 0, 0);
+		pPage->GetPanel()->SetShape(SS_Box);
+		pPage->GetPanel()->SetShow(SSH_Height);
+		pPage->GetPanel()->SetBake(2, 0.25f, &sLight);
+		pPage->PanelChanged();
+
+		AssertTrue(pPage->Save(szFile));
+		AssertTrue(pPage->ExportMaterial(szMaterial));
+
+		//SCULPT_PAGE_FILE=file saves it there too, to open in Sculpt.
+		if (getenv("SCULPT_PAGE_FILE") != NULL)
+		{
+			AssertTrue(pPage->Save(getenv("SCULPT_PAGE_FILE")));
+		}
+
+		//Something else, then the file opened: it's all back, in other objects.
+		pPage->SetMaterial(MakeSolidMarble(1));
+		pPage->GetPanel()->SetShape(SS_Sphere);
+		pPage->GetPanel()->SetShow(SSH_Baked);
+		pPage->PanelChanged();
+		AssertTrue(pPage->Open(szFile));
+		AssertTrue(pPage->GetNodes()->GetGraph() != pGraph);
+		pGraph = pPage->GetNodes()->GetGraph();
+		AssertSize(uiNodes, pGraph->NumNodes());
+		AssertSize(uiNodes, pPage->GetNodes()->GetEditor()->NumNodes());
+		AssertInt(-123, pGraph->GetNode(2)->msPosition.x);
+		AssertInt(45, pGraph->GetNode(2)->msPosition.y);
+		AssertInt(-123, pPage->GetNodes()->GetEditor()->GetNode(2)->GetNodePosition().x);
+		AssertTrue(CSculptGraph::IsValue(pGraph->GetInput(&pGraph->GetNode(1), 0)));
+		AssertFloat(fRed, TestSculptPageRed(pGraph->GetSurface()), 6);
+		AssertInt(SS_Box, pPage->GetPanel()->GetShape());
+		AssertInt(SSH_Height, pPage->GetPanel()->GetShow());
+		AssertInt(2, pPage->GetBake()->miSamples);
+		AssertFloat3(SFloat32Vec3(1, 0, 0), &pPage->GetBake()->msLight, 6);
+		AssertFalse(pPage->GetNodes()->CanUndo());
+
+		//The exported material is what another program reads; opened here it's a graph, and the panel's as it was.
+		pRead = ReadSolidMaterial(szMaterial);
+		AssertTrue(pRead.IsNotNull());
+		AssertFloat(fRed, TestSculptPageRed(pRead), 6);
+		pRead = NULL;
+		pPage->GetPanel()->SetShape(SS_Sphere);
+		AssertTrue(pPage->Open(szMaterial));
+		AssertTrue(pPage->GetNodes()->GetGraph()->NumNodes() < uiNodes);  //Only what the surface is made of: not the nodes the link taken off left behind.
+		AssertTrue(pPage->GetNodes()->GetGraph()->NumNodes() > 1);
+		AssertFloat(fRed, TestSculptPageRed(pPage->GetNodes()->GetGraph()->GetSurface()), 6);
+		AssertInt(SS_Sphere, pPage->GetPanel()->GetShape());
+		AssertTrue(pPage->GetNodes()->GetGraph()->GetNode(2)->msPosition.x != -123);  //Arranged afresh.
+
+		//No such file: nothing changes.
+		pGraph = pPage->GetNodes()->GetGraph();
+		AssertFalse(pPage->Open("Output" _FS_ "TestSculptPageFile" _FS_ "Nothing"));
+		AssertTrue(pPage->GetNodes()->GetGraph() == pGraph);
+
+		pGraph = NULL;
+		pPage = NULL;
+		sLook.Kill();
+		pTheme = NULL;
+		pFontColours = NULL;
+		SculptTestWindowDone(pWindow, pFactory);
+	}
+	AssertTrue(ORoot()->RemoveAll());
+	ObjectsFlush();
+	ObjectsKill();
+
+	AssertTrue(cFileUtil.RemoveDir(szDirectory));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptPage(void)
@@ -273,6 +418,7 @@ void TestSculptPage(void)
 	BeginTests();
 
 	TestSculptPageSpheres();
+	TestSculptPageFile();
 
 	TestStatistics();
 }
