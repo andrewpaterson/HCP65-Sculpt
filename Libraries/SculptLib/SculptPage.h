@@ -67,6 +67,9 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //turns about: at the start that's z = 0, the view looking along -z.  The spheres are joined by a smooth union, so they
 //blend where they meet.  Delete, or X, takes the spheres away.  Clicks drop nothing while another shape is shown.
 //
+//The materials are made with z up; the view turns about y.  So what's looked at is stood up in the view: its z is the
+//view's up, and its -y, its front, faces the view at the start.
+//
 //Save writes all of it but the view to one file (a CSculptDocument), and Open reads one, or a file of a material alone;
 //ExportMaterial writes the material alone, as another program reads it (ProceduralLib's ReadSolidMaterial).
 class CSculptPage : public CGridContainer

@@ -324,8 +324,10 @@ void TestSculptPageFile(void)
 		Ptr<CSolidTexture>			pRead;
 		SDialogLook					sLook;
 		SFloat32Vec3				sLight;
+		CChars						szMaterials;
 		float32						fRed;
 		size						uiNodes;
+		size						i;
 
 		pWindow = SculptTestWindow(pFactory, 1000, 700, TestSculptPageNoTick, NULL);
 		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
@@ -388,6 +390,24 @@ void TestSculptPageFile(void)
 		AssertFloat(fRed, TestSculptPageRed(pPage->GetNodes()->GetGraph()->GetSurface()), 6);
 		AssertInt(SS_Sphere, pPage->GetPanel()->GetShape());
 		AssertTrue(pPage->GetNodes()->GetGraph()->GetNode(2)->msPosition.x != -123);  //Arranged afresh.
+
+		//SCULPT_MATERIAL_FILES=folder saves a Sculpt file of each material on the sphere and box there, to look at in
+		//Sculpt.
+		if (getenv("SCULPT_MATERIAL_FILES") != NULL)
+		{
+			pPage->GetPanel()->SetShape(SS_Both);
+			pPage->GetPanel()->SetShow(SSH_Baked);
+			sLight.Init(MESH_BAKE_LIGHT_X, MESH_BAKE_LIGHT_Y, MESH_BAKE_LIGHT_Z);
+			pPage->GetPanel()->SetBake(MESH_BAKE_SAMPLES, 1.0f, &sLight);
+			for (i = 0; i < NumSculptMaterials(); i++)
+			{
+				szMaterials.Init(getenv("SCULPT_MATERIAL_FILES"));
+				cFileUtil.AppendToPath(&szMaterials, GetSculptMaterialName(i));
+				pPage->SetMaterial(MakeSculptMaterial(i, 1));
+				AssertTrue(pPage->Save(szMaterials.Text()));
+				szMaterials.Kill();
+			}
+		}
 
 		//No such file: nothing changes.
 		pGraph = pPage->GetNodes()->GetGraph();

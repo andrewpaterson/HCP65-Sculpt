@@ -182,7 +182,10 @@ void CSculptPage::MakeScene(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The editor's instance, placed where its spheres are.
+// The editor's instance, stood up: the materials are made with z up
+// (bricks' courses, wood's grain, moss on what faces up) and the view
+// turns about y, so the mesh's z is the view's y and its -y, its front,
+// faces the view.
 //
 //////////////////////////////////////////////////////////////////////////
 static Ptr<CInstance> SculptInstance(Ptr<CMeshEditor> pEditor)
@@ -193,7 +196,9 @@ static Ptr<CInstance> SculptInstance(Ptr<CMeshEditor> pEditor)
 
 	pConnection = OMalloc<CConnection>();
 	pConnection->msWorldMatrix.Identity();
-	pConnection->msLocalMatrix.Identity();
+	pConnection->msWorldMatrix.y.Init(0, 0, -1, 0);
+	pConnection->msWorldMatrix.z.Init(0, 1, 0, 0);
+	pConnection->msLocalMatrix = pConnection->msWorldMatrix;
 	pInstanceMesh = OMalloc<CInstanceMesh>(pEditor);
 	pInstanceMesh->mapConnections.Add(pConnection);
 	pInstance = OMalloc<CInstance>();
@@ -218,9 +223,11 @@ void CSculptPage::Remesh(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // What the material is looked at on, as the panel has it: a sphere a
-// unit in radius, a box 1.6 a side, the two met as the gallery has them
-// (the box turned, so not all its faces are square to the texture's
-// axes), or the spheres dropped.  NULL for no spheres yet.
+// unit in radius, a box, the two met as the gallery has them (the box
+// turned about z, so its sides aren't square to the texture's axes), or
+// the spheres dropped.  NULL for no spheres yet.  A box's top and bottom
+// are kept off the tenths of a unit, where bricks' courses meet: a face
+// that lies in the mortar between two courses is all mortar.
 //
 //////////////////////////////////////////////////////////////////////////
 Ptr<CShape> CSculptPage::GetShape(void)
@@ -247,14 +254,14 @@ Ptr<CShape> CSculptPage::GetShape(void)
 		asAxes[0].Init(1, 0, 0);
 		asAxes[1].Init(0, 1, 0);
 		asAxes[2].Init(0, 0, 1);
-		sBox.Init(&sCentre, &asAxes[0], 0.8f, &asAxes[1], 0.8f, &asAxes[2], 0.8f);
+		sBox.Init(&sCentre, &asAxes[0], 0.8f, &asAxes[1], 0.8f, &asAxes[2], 0.75f);
 		return OMalloc<CBox>(&sBox);
 	}
 
 	pUnion = OMalloc<CShapeUnion>();
 	sCentre.Init(-1.05f, 0.0f, 0.0f);
 	pUnion->Add(OMalloc<CSphere>(&sCentre, SCULPT_SPHERE_RADIUS));
-	sCentre.Init(1.0f, 0.0f, -0.2f);
+	sCentre.Init(1.0f, 0.0f, -0.25f);
 	asAxes[0].Init(0.5f, 0.8660254f, 0.0f);
 	asAxes[1].Init(-0.8660254f, 0.5f, 0.0f);
 	asAxes[2].Init(0, 0, 1);
@@ -559,6 +566,8 @@ bool CSculptPage::DropSphere(int32 x, int32 y)
 		return false;
 	}
 
+	//The point is the view's; the shape is the mesh's, which is stood up in the view (SculptInstance).
+	sCentre.Init(sCentre.x, -sCentre.z, sCentre.y);
 	pSphere = OMalloc<CSphere>(&sCentre, SCULPT_SPHERE_RADIUS);
 	if (mpSculpted.IsNull())
 	{

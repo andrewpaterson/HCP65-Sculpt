@@ -253,6 +253,13 @@ Around it
     surface is made of: nodes left unlinked in Sculpt aren't in it.  Sculpt's Export Material writes one, and its Open
     reads one as well as its own files.  SolidMaterials' functions are as they were.
 23. Tune the seven materials in Sculpt; the gallery again.
+    Not done as written: the materials' numbers are as they were.  Tuning them is by eye and by hand in Sculpt on a
+    screen, which is the user's to do (question 4).  What was done: each of the six was opened in Sculpt on the sphere
+    and box and looked at (the tests save a Sculpt file of each with SCULPT_MATERIAL_FILES=folder, and HCP65SculptRef
+    opens one and saves what its window shows).  Looking found two things, both mended.  The materials are made with
+    z up and the view turns about y, so everything was seen from above: what's looked at is now stood up in the view.
+    And a box whose top lay where two courses of bricks meet was all mortar: the boxes' tops and bottoms are kept off
+    the tenths of a unit.  The gallery is as it was, as no material changed.
 24. Clean up; the plan's Done notes.
 
 Questions for the user (kept as they come up; work carries on with the answer assumed in brackets)
@@ -267,6 +274,9 @@ Questions for the user (kept as they come up; work carries on with the answer as
      Codabase, no longer loads: there are 71 U_Enums in CommonLibraries, and none of the tests' saved files minded
      (StandardLib, SupportLib, WindowLib, ProceduralLib and Sculpt's tests pass).  If you have such saved objects
      elsewhere that matter, say, and old files can be read by the old size.  [Assumed: none that matter.]
+  4. The materials haven't been tuned (step 23): their colours and sizes are still my first guesses.  Sculpt is there
+     to tune them in, on a screen, by your eye: change a material, Export Material, and say which you'd like made the
+     new starting ones in SolidMaterials.cpp, or tune and send the files.  [Assumed: yours to do when you've tried it.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.
