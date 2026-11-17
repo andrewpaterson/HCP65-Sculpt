@@ -267,12 +267,36 @@ Around it
       The node editor doesn't zoom (question 2), and the normals aren't shown (step 19).
       The materials aren't tuned (question 4).
       A Sculpt file doesn't keep the view or the history for undo; opening a file, and dropping spheres, aren't undone.
-      Sculpt has never been used with a real pointer and keys: it's tested by its tests, which call what the pointer
-      and keys call, and looked at through HCP65SculptRef's pictures (question 1).  Shift held with a click, and the
-      menus and file choosers of the app itself, are untested.
+      Sculpt has been used with a real pointer and keys only a little (question 1: menus, number drags, link drags
+      and the colour picker, in Xephyr).  Shift held with a click, and the file choosers of the app itself, are
+      untested by hand.
       None of it has been built with Visual Studio.  The projects and solutions are there (HCP65Sculpt.sln,
       TestSculptLib.sln, TestSceneViewLib.sln, and the new files in the libraries' projects), made from the existing
       ones.
+
+Outstanding (2026-11-17, when the work was left for something else; pick up from here)
+  1. The bake is slow, and it's what makes Sculpt feel slow (question 5, not answered).  Measured on the starting
+     marble, a 1080 by 400 view, a GTX 1050 Ti and 24 cores: every change to a material bakes coarsely for about
+     100 ms on the window's thread (about 9 changes a second while a number is dragged), and 330 ms after the last
+     change the whole bake holds the window for about 1.7 s.  Both are CMeshBake sampling the solid texture (the
+     noises) on one thread.  To do, once answered: the bake's texels shared among threads (ThreadLib's
+     CWorkerThreadPool or BaseLib's CNativeThread); the workers sample through plain pointers and never copy a Ptr,
+     as its counting isn't safe between threads; compiled out for the 65C64 and the 816, which SupportLib also builds
+     for.  Then, if the whole bake still holds the window, it's run behind the window and shown when it's done.
+     Already mended: the node editor painted its whole back at every layout of the window (half the time of turning
+     the view; now only when a link's ends or its size change), Vulkan's frame was read back from slow memory (8.4 ms
+     to 0.4 ms), and a coarse bake is one sample a texel.  Turning the view is about 10 ms a frame.
+  2. The status line's "ms a frame" is an average smoothed over many frames with the bakes' frames in it, so it reads
+     high and isn't the time to turn the view.  Show the last frame's time, or leave the bakes out.
+  3. The materials aren't tuned (step 23, question 4): the user's to try in Sculpt.  What they send or name is made
+     the starting materials in SolidMaterials.cpp, and the gallery made again.
+  4. The normals aren't shown in the view (step 19).
+  5. A Sculpt file doesn't keep the view; opening a file and dropping spheres aren't undone.
+  6. By hand, not yet tried: Shift held with a click, Open, Save, Save As and Export Material's file choosers.
+  7. Build with Visual Studio: HCP65Sculpt.sln, TestSculptLib.sln, TestSceneViewLib.sln.
+  8. The node editor's zoom: not wanted for now (question 2).
+  9. Nothing is pushed: CommonLibraries, HCP65-Sculpt and WindowInputTester have commits of this work to push when
+     the user says.
 
 Questions for the user (kept as they come up; work carries on with the answer assumed in brackets)
   1. Sculpt can only be tried by hand on a screen.  Tests draw it into images with no screen (WinRefLib), which is how
@@ -295,6 +319,11 @@ Questions for the user (kept as they come up; work carries on with the answer as
   4. The materials haven't been tuned (step 23): their colours and sizes are still my first guesses.  Sculpt is there
      to tune them in, on a screen, by your eye: change a material, Export Material, and say which you'd like made the
      new starting ones in SolidMaterials.cpp, or tune and send the files.  [Answered 2026-11-17: you'll try.]
+  5. Sculpt is slow because every change bakes the texture on one of the machine's cores, on the window's own thread
+     (Outstanding, 1).  May the bake be shared among threads?  It should bring a change's 100 ms to about 10 ms and
+     the 1.7 s to a fraction of a second, though that's a guess until it's built.  The cost is threads in SupportLib's
+     bake, with care that no Ptr is copied on them.  [Not answered; recommended: yes, threads first, and the whole
+     bake behind the window only if that isn't enough.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.
