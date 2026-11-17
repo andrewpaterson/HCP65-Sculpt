@@ -42,7 +42,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #define SCULPT_SMALLEST_CELL	0.05f	//The isosurface octree's cells, smallest
 #define SCULPT_LARGEST_CELL		0.8f	//and largest.
 #define SCULPT_TEXELS_PER_UNIT	128.0f	//The baked texture's density,
-#define SCULPT_COARSE_SHARE		0.25f	//and how much of it a change is first shown at: a sixteenth of the texels.
+#define SCULPT_COARSE_SHARE		0.25f	//and how much of it a change is first shown at: a sixteenth of the texels, one sample each.
 #define SCULPT_FINE_PAUSE		330		//Milliseconds after the last change before it's baked at the whole density.
 #define SCULPT_MATERIAL_SEED	1		//The material it starts with is marble of this seed.
 #define SCULPT_VIEW_SHARE		550		//Of the page's height the view has, out of SPLIT_CONTAINER_WHOLE: the node editor has the rest.

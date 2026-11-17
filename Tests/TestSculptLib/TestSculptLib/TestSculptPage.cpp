@@ -124,7 +124,8 @@ void TestSculptPageSpheres(void)
 		AssertInt(SS_Sphere, pPage->GetPanel()->GetShape());
 		AssertTrue(pPage->GetShape().IsNotNull());
 		AssertInt(SSH_Baked, pPage->GetPanel()->GetShow());
-		AssertInt(MESH_BAKE_SAMPLES, pPage->GetBake()->miSamples);
+		AssertInt(MESH_BAKE_SAMPLES, pPage->GetPanel()->GetSamples());
+		AssertInt(pPage->IsCoarse() ? 1 : MESH_BAKE_SAMPLES, pPage->GetBake()->miSamples);  //A coarse bake is one sample a texel.
 		AssertFloat(1.0f, pPage->GetBake()->mfRelief, 6);
 		AssertTrue(pPage->GetBake()->mpTexture == pPage->GetNodes()->GetGraph()->GetSurface());
 		AssertFalse(pPage->DropSphere(10, 10));  //Nothing's dropped on a sphere.
@@ -152,6 +153,8 @@ void TestSculptPageSpheres(void)
 		pPage->GetPanel()->SetBake(2, 0.5f, &sLight);
 		pPage->GetPanel()->SetShow(SSH_Baked);
 		pPage->PanelChanged();
+		AssertInt(1, pPage->GetBake()->miSamples);  //Coarse at first: one sample a texel.
+		pPage->BakeFine();
 		AssertInt(2, pPage->GetBake()->miSamples);
 		AssertFloat(0.5f, pPage->GetBake()->mfRelief, 6);
 		AssertFloat3(SFloat32Vec3(0, 0, 1), &pPage->GetBake()->msLight, 6);
@@ -375,7 +378,7 @@ void TestSculptPageFile(void)
 		AssertFloat(fRed, TestSculptPageRed(pGraph->GetSurface()), 6);
 		AssertInt(SS_Box, pPage->GetPanel()->GetShape());
 		AssertInt(SSH_Height, pPage->GetPanel()->GetShow());
-		AssertInt(2, pPage->GetBake()->miSamples);
+		AssertInt(2, pPage->GetPanel()->GetSamples());
 		AssertFloat3(SFloat32Vec3(1, 0, 0), &pPage->GetBake()->msLight, 6);
 		AssertFalse(pPage->GetNodes()->CanUndo());
 

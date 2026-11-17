@@ -304,7 +304,7 @@ void CSculptPage::Rebake(bool bCoarse)
 	mpShapeEditor->mpShape = pShape;
 	mpShapeNormals->mpShape = pShape;
 	mpBake->mpTexture = GetShown();
-	mpBake->miSamples = mpPanel->GetSamples();
+	mpBake->miSamples = bCoarse ? 1 : mpPanel->GetSamples();  //A coarse bake is to see a change as it's made: one sample a texel.
 	mpBake->mfRelief = (mpPanel->GetShow() == SSH_Baked) ? mpPanel->GetRelief() : 0.0f;
 	mpPanel->GetLight(&sLight);
 	if (sLight.Magnitude() > 0.0f)
