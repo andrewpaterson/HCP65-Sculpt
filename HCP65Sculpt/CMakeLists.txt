@@ -44,6 +44,7 @@ set(RENDERLIB_DIR "${COMMON_DIR}/RenderLib")
 set(RASTERRENDERLIB_DIR "${COMMON_DIR}/RasterRenderLib")
 set(VULKANLIB_DIR "${COMMON_DIR}/VulkanLib")
 set(PROCEDURALLIB_DIR "${COMMON_DIR}/ProceduralLib")
+set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
 set(INPUTLIB_DIR "${COMMON_DIR}/InputLib")
 set(WINDOWLIB_DIR "${COMMON_DIR}/WindowLib")
 set(X11LIB_DIR "${COMMON_DIR}/X11Lib")
@@ -103,6 +104,7 @@ vcxproj_sources(RENDERLIB_SOURCES "${RENDERLIB_DIR}/RenderLib.vcxproj")
 vcxproj_sources(RASTERRENDERLIB_SOURCES "${RASTERRENDERLIB_DIR}/RasterRenderLib.vcxproj")
 vcxproj_sources(VULKANLIB_SOURCES "${VULKANLIB_DIR}/VulkanLib.vcxproj")
 vcxproj_sources(PROCEDURALLIB_SOURCES "${PROCEDURALLIB_DIR}/ProceduralLib.vcxproj")
+vcxproj_sources(THREADLIB_SOURCES "${THREADLIB_DIR}/ThreadLib.vcxproj")
 vcxproj_sources(INPUTLIB_SOURCES "${INPUTLIB_DIR}/InputLib.vcxproj")
 vcxproj_sources(WINDOWLIB_SOURCES "${WINDOWLIB_DIR}/WindowLib.vcxproj")
 vcxproj_sources(X11LIB_SOURCES "${X11LIB_DIR}/X11Lib.vcxproj")
@@ -171,6 +173,10 @@ target_link_libraries(RasterRenderLib PUBLIC RenderLib RasterLib SupportLib Stan
 add_library(ProceduralLib STATIC ${PROCEDURALLIB_SOURCES})
 target_link_libraries(ProceduralLib PUBLIC SupportLib StandardLib BaseLib)
 
+# The bake's rows are shared among a pool of threads (CWorkerThreadJobs).
+add_library(ThreadLib STATIC ${THREADLIB_SOURCES})
+target_link_libraries(ThreadLib PUBLIC BaseLib)
+
 # Only Vulkan's headers (the SDK or libvulkan-dev): VulkanLib finds its functions in libvulkan.so.1 while it runs.
 find_path(VULKAN_INCLUDE_DIR vulkan/vulkan.h HINTS "$ENV{VULKAN_SDK}/include" REQUIRED)
 add_library(VulkanLib STATIC ${VULKANLIB_SOURCES})
@@ -198,7 +204,7 @@ target_link_libraries(SculptLib PUBLIC SceneViewLib WindowLib InputLib VulkanLib
 # Everything but a main.
 add_library(HCP65SculptLib STATIC ${SCULPT_SOURCES})
 target_include_directories(HCP65SculptLib PUBLIC "${SCULPT_DIR}")
-target_link_libraries(HCP65SculptLib PUBLIC SculptLib SceneViewLib WindowLib InputLib VulkanLib ProceduralLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib BaseLib)
+target_link_libraries(HCP65SculptLib PUBLIC SculptLib SceneViewLib WindowLib InputLib VulkanLib ProceduralLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib ThreadLib BaseLib)
 
 add_executable(HCP65Sculpt "${SCULPT_DIR}/HCP65SculptLinux.cpp")
 target_link_libraries(HCP65Sculpt PRIVATE HCP65SculptLib X11Lib)

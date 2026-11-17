@@ -29,6 +29,7 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 #include "StandardLib/Objects.h"
 #include "SupportLib/PNGWriter.h"
 #include "SupportLib/TrueTypeFontFactory.h"
+#include "ThreadLib/WorkerThreadJobs.h"
 #include "WindowLib/Canvas.h"
 #include "WindowLib/ClearCanvasDraw.h"
 #include "WindowLib/JewelImageGenerator.h"
@@ -41,6 +42,11 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SCULPT_SNAPSHOT_VARIABLE	"HCP65_SCULPT_SNAPSHOT"
 #define SCULPT_EXIT_VARIABLE		"HCP65_SCULPT_EXIT"
+
+
+//The threads a page's bake shares its rows among, one for each the hardware runs at once.  They never touch an
+//object's count: the window's thread holds everything they read, and waits for them (SupportLib's MeshBake.h).
+static CWorkerThreadJobs	gcSculptJobs;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -94,6 +100,7 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 		msDialogLook.pcDimFont = &mpFontColours->GetFont(mpTheme->GetColour(TC_Icon));
 
 		mpPage = OMalloc<CSculptPage>(mpWindow, &msDialogLook, mpFontColours);
+		mpPage->SetJobs(&gcSculptJobs);
 		MakeMenus();
 		mpMain = OMalloc<CGridContainer>(mpWindow);
 		mpMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
@@ -505,6 +512,7 @@ void InitSculptGlobals(void)
 	MemoryInit();
 	DataIOInit();
 	ObjectsInit();
+	gcSculptJobs.Init();
 }
 
 
@@ -516,6 +524,7 @@ void KillSculptGlobals(void)
 {
 	ObjectsFlush();
 	ObjectsKill();
+	gcSculptJobs.Kill();
 	DataIOKill();
 	MemoryKill();
 	TypeConverterKill();

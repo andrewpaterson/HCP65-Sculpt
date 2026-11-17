@@ -20,6 +20,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 ** ------------------------------------------------------------------------ **/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "BaseLib/Timer.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/MeshBake.h"
@@ -29,6 +30,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "ProceduralLib/MeshShapeEditor.h"
 #include "ProceduralLib/MeshShapeNormals.h"
 #include "ProceduralLib/SolidMaterials.h"
+#include "ThreadLib/WorkerThreadJobs.h"
 #include "SculptLib/SculptPage.h"
 #include "TestLib/Assert.h"
 
@@ -64,9 +66,11 @@ static Ptr<CSolidTexture> TestSculptBakeMaterial(size uiIndex, const char** pszN
 // at fTexelsPerUnit: meshed, unwrapped and baked first with a texture
 // (the whole), then baked again with pTexture, the mesh and its UVs as
 // they were (the bake alone, which is what a setting changed costs).
+// With pcJobs the bake's rows are shared among its threads.  Returns the
+// image baked.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestSculptBakeTimes(Ptr<CSolidTexture> pTexture, float32 fTexelsPerUnit, int32 iSamples, int64* piWhole, int64* piBake)
+static Ptr<CImage> TestSculptBakeTimes(Ptr<CSolidTexture> pTexture, float32 fTexelsPerUnit, int32 iSamples, CJobs* pcJobs, int64* piWhole, int64* piBake)
 {
 	Ptr<CMeshEditor>		pEditor;
 	Ptr<CMeshShapeEditor>	pShape;
@@ -86,6 +90,7 @@ static void TestSculptBakeTimes(Ptr<CSolidTexture> pTexture, float32 fTexelsPerU
 	pUnwrap = pEditor->AddModifier<CMeshUnwrap>(fTexelsPerUnit);
 	pBake = pEditor->AddModifier<CMeshBake>(pTexture);
 	pBake->miSamples = iSamples;
+	pBake->SetJobs(pcJobs);
 
 	iStart = GetDebugTickCount();
 	pEditor->GetOutput();
@@ -95,51 +100,110 @@ static void TestSculptBakeTimes(Ptr<CSolidTexture> pTexture, float32 fTexelsPerU
 	iStart = GetDebugTickCount();
 	pBake->Modify(pUnwrapped);
 	*piBake = GetDebugTickCount() - iStart;
+	return pBake->mpImage;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestSculptBakeSameImage(Ptr<CImage> pFirst, Ptr<CImage> pSecond)
+{
+	if ((pFirst->GetWidth() != pSecond->GetWidth()) || (pFirst->GetHeight() != pSecond->GetHeight()))
+	{
+		return false;
+	}
+	return memcmp(pFirst->GetData(), pSecond->GetData(), (size_t)pFirst->GetWidth() * (size_t)pFirst->GetHeight() * 3) == 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Every material baked on a pool of threads is the image, byte for byte,
+// that it is baked on one.  (Its textures are sampled by several threads
+// at once: a ThreadSanitizer build says if any of them isn't only read.)
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptBakeJobs(void)
+{
+	CWorkerThreadJobs	cJobs;
+	Ptr<CSolidTexture>	pMaterial;
+	Ptr<CImage>			pAlone;
+	Ptr<CImage>			pShared;
+	const char*			szName;
+	int64				iWhole;
+	int64				iBake;
+	size				uiThreadErrors;
+	size				i;
+
+	uiThreadErrors = ObjectsNumThreadErrors();
+	cJobs.Init(4);
+	for (i = 0; i < TEST_SCULPT_BAKE_MATERIALS; i++)
+	{
+		pMaterial = TestSculptBakeMaterial(i, &szName);
+		pAlone = TestSculptBakeTimes(pMaterial, 16.0f, 2, NULL, &iWhole, &iBake);
+		pShared = TestSculptBakeTimes(pMaterial, 16.0f, 2, &cJobs, &iWhole, &iBake);
+		AssertTrue(pAlone->GetHeight() > 16);
+		AssertTrue(TestSculptBakeSameImage(pAlone, pShared));
+	}
+	cJobs.Kill();
+	AssertSize(uiThreadErrors, ObjectsNumThreadErrors());
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 // SCULPT_BAKE_REPORT prints what a sphere takes to bake with each
-// material at the densities a change could be shown at.  Without it, one
-// small bake says the stack works.
+// material at the densities a change could be shown at, on this thread
+// and then on a thread for each the hardware runs at once.  Without it,
+// one small bake says the stack works.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptBakeReport(void)
 {
 	float32				afDensities[4] = { 128.0f, 64.0f, 32.0f, 16.0f };
+	CWorkerThreadJobs	cJobs;
+	CJobs*				pcJobs;
 	const char*			szName;
 	Ptr<CSolidTexture>	pMaterial;
 	int64				iWhole;
 	int64				iBake;
 	size				i;
 	size				j;
+	size				k;
 
 	if (getenv("SCULPT_BAKE_REPORT") == NULL)
 	{
-		TestSculptBakeTimes(MakeSolidMarble(1), 8.0f, 1, &iWhole, &iBake);
+		TestSculptBakeTimes(MakeSolidMarble(1), 8.0f, 1, NULL, &iWhole, &iBake);
 		AssertTrue(iWhole >= 0);
 		return;
 	}
 
-	printf("A sphere of radius %.1f: milliseconds to mesh, unwrap and bake (whole), and to bake alone (bake)\n", SCULPT_SPHERE_RADIUS);
-	printf("%-8s", "");
-	for (j = 0; j < 4; j++)
+	cJobs.Init();
+	for (k = 0; k < 2; k++)
 	{
-		printf("  %3.0f/unit whole  bake", afDensities[j]);
-	}
-	printf("\n");
-	for (i = 0; i < TEST_SCULPT_BAKE_MATERIALS; i++)
-	{
-		pMaterial = TestSculptBakeMaterial(i, &szName);
-		printf("%-8s", szName);
+		pcJobs = (k == 0) ? NULL : &cJobs;
+		printf("A sphere of radius %.1f on %d thread%s: milliseconds to mesh, unwrap and bake (whole), and to bake alone (bake)\n", SCULPT_SPHERE_RADIUS, (k == 0) ? 1 : cJobs.NumThreads(), (k == 0) ? "" : "s");
+		printf("%-8s", "");
 		for (j = 0; j < 4; j++)
 		{
-			TestSculptBakeTimes(pMaterial, afDensities[j], MESH_BAKE_SAMPLES, &iWhole, &iBake);
-			printf("  %14d %5d", (int)iWhole, (int)iBake);
+			printf("  %3.0f/unit whole  bake", afDensities[j]);
 		}
 		printf("\n");
+		for (i = 0; i < TEST_SCULPT_BAKE_MATERIALS; i++)
+		{
+			pMaterial = TestSculptBakeMaterial(i, &szName);
+			printf("%-8s", szName);
+			for (j = 0; j < 4; j++)
+			{
+				TestSculptBakeTimes(pMaterial, afDensities[j], MESH_BAKE_SAMPLES, pcJobs, &iWhole, &iBake);
+				printf("  %14d %5d", (int)iWhole, (int)iBake);
+			}
+			printf("\n");
+		}
 	}
+	cJobs.Kill();
 	fflush(stdout);
 }
 
@@ -154,6 +218,7 @@ void TestSculptBake(void)
 	ObjectsInit();
 
 	TestSculptBakeReport();
+	TestSculptBakeJobs();
 
 	ObjectsDiscard();
 	ObjectsKill(false);

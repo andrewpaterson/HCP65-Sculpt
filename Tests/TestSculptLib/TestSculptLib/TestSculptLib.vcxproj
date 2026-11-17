@@ -279,6 +279,9 @@
     <ProjectReference Include="..\..\..\Libraries\SculptLib\SculptLib.vcxproj">
       <Project>{e262449f-ea8d-4bab-b5db-331976595327}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\ThreadLib\ThreadLib.vcxproj">
+      <Project>{7269d64f-994a-4233-9add-bad415a07b64}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

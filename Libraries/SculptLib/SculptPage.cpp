@@ -510,6 +510,7 @@ void CSculptPage::PanelChanged(void)
 
 Ptr<CSculptPanel> CSculptPage::GetPanel(void) const { return mpPanel; }
 Ptr<CMeshBake> CSculptPage::GetBake(void) const { return mpBake; }
+void CSculptPage::SetJobs(CJobs* pcJobs) { mpBake->SetJobs(pcJobs); }
 
 
 //////////////////////////////////////////////////////////////////////////

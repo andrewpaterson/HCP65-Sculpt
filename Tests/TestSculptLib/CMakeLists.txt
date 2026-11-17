@@ -13,6 +13,9 @@
 #
 # Add -DBASELIB_ASAN=ON for AddressSanitizer and LeakSanitizer.
 #
+# Add -DBASELIB_TSAN=ON (64-bit) for ThreadSanitizer, in its own build directory.  Run it with address space
+# randomisation off (setarch -R ...): ThreadSanitizer doesn't start where the kernel maps memory high.
+#
 # Add -DBASELIB_SIZE16=ON (32-bit only) to check the W65C816's size model on the host: size is 16 bits and lsize 32,
 # and -Wconversion warns of each wider value narrowed to a size ("to 'size'" in the warning).
 #
@@ -33,6 +36,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 option(BASELIB_ASAN "Build with AddressSanitizer and LeakSanitizer" OFF)
+option(BASELIB_TSAN "Build with ThreadSanitizer" OFF)
 option(BASELIB_64 "Build 64-bit instead of 32-bit" OFF)
 option(BASELIB_SIZE16 "Build with a 16-bit size (the W65C816's size model) and -Wconversion" OFF)
 
@@ -51,6 +55,7 @@ set(WINDOWLIB_DIR "${COMMON_DIR}/WindowLib")
 set(WINREFLIB_DIR "${COMMON_DIR}/WinRefLib")
 set(SCENEVIEWLIB_DIR "${COMMON_DIR}/SceneViewLib")
 set(PROCEDURALLIB_DIR "${COMMON_DIR}/ProceduralLib")
+set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
 set(SCULPT_LIBRARIES_DIR "${CODAPHELA_ROOT}/HCP65-Sculpt/Libraries")
 set(SCULPTLIB_DIR "${SCULPT_LIBRARIES_DIR}/SculptLib")
 set(TESTSCULPTLIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/TestSculptLib")
@@ -123,6 +128,7 @@ vcxproj_sources(WINREFLIB_SOURCES "${WINREFLIB_DIR}/WinRefLib.vcxproj")
 vcxproj_sources(SCENEVIEWLIB_SOURCES "${SCENEVIEWLIB_DIR}/SceneViewLib.vcxproj")
 
 vcxproj_sources(PROCEDURALLIB_SOURCES "${PROCEDURALLIB_DIR}/ProceduralLib.vcxproj")
+vcxproj_sources(THREADLIB_SOURCES "${THREADLIB_DIR}/ThreadLib.vcxproj")
 
 vcxproj_sources(SCULPTLIB_SOURCES "${SCULPTLIB_DIR}/SculptLib.vcxproj")
 
@@ -202,6 +208,11 @@ if(BASELIB_ASAN)
 	target_link_options(baselib_options INTERFACE -fsanitize=address)
 endif()
 
+if(BASELIB_TSAN)
+	target_compile_options(baselib_options INTERFACE -fsanitize=thread -fno-omit-frame-pointer)
+	target_link_options(baselib_options INTERFACE -fsanitize=thread)
+endif()
+
 
 # CMutex uses pthreads on Linux.
 find_package(Threads REQUIRED)
@@ -254,11 +265,15 @@ target_link_libraries(SceneViewLib PUBLIC WindowLib InputLib VulkanLib RasterRen
 add_library(ProceduralLib STATIC ${PROCEDURALLIB_SOURCES})
 target_link_libraries(ProceduralLib PUBLIC SupportLib StandardLib BaseLib)
 
+# The bake's rows are shared among a pool of threads (CWorkerThreadJobs).
+add_library(ThreadLib STATIC ${THREADLIB_SOURCES})
+target_link_libraries(ThreadLib PUBLIC BaseLib)
+
 add_library(SculptLib STATIC ${SCULPTLIB_SOURCES})
 target_link_libraries(SculptLib PUBLIC SceneViewLib WindowLib InputLib VulkanLib ProceduralLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib BaseLib)
 
 add_executable(TestSculptLib ${TESTSCULPTLIB_SOURCES})
-target_link_libraries(TestSculptLib PRIVATE TestLib SculptLib SceneViewLib WinRefLib WindowLib InputLib VulkanLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib BaseLib)
+target_link_libraries(TestSculptLib PRIVATE TestLib SculptLib SceneViewLib WinRefLib WindowLib InputLib VulkanLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib ThreadLib BaseLib)
 
 # The tests read their input (Input/ ...) relative to the project directory,
 # as Visual Studio does.

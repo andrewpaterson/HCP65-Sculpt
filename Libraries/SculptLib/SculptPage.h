@@ -105,6 +105,7 @@ public:
 	Ptr<CSculptNodes>	GetNodes(void) const;
 	Ptr<CSculptPanel>	GetPanel(void) const;
 	Ptr<CMeshBake>		GetBake(void) const;
+	void				SetJobs(CJobs* pcJobs);  //Threads to bake on (CMeshBake::SetJobs).  They outlive the page.
 	Ptr<CShape>			GetShape(void);
 	void				PanelChanged(void);
 	void				SetMaterial(Ptr<CSolidTexture> pSurface);

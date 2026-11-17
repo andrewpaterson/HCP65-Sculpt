@@ -287,6 +287,9 @@
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\WinGdiLib\WinGdiLib.vcxproj">
       <Project>{d42e3a40-2620-4520-bea0-ce1f3e064e08}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\ThreadLib\ThreadLib.vcxproj">
+      <Project>{7269d64f-994a-4233-9add-bad415a07b64}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

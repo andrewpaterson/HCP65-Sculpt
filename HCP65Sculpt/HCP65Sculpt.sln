@@ -33,6 +33,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowLib", "..\..\CommonLi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinGdiLib", "..\..\CommonLibraries\Libraries\WinGdiLib\WinGdiLib.vcxproj", "{D42E3A40-2620-4520-BEA0-CE1F3E064E08}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ThreadLib", "..\..\CommonLibraries\Libraries\ThreadLib\ThreadLib.vcxproj", "{7269D64F-994A-4233-9ADD-BAD415A07B64}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -161,6 +163,14 @@ Global
 		{D42E3A40-2620-4520-BEA0-CE1F3E064E08}.Release|Win32.Build.0 = Release|Win32
 		{D42E3A40-2620-4520-BEA0-CE1F3E064E08}.Release|x64.ActiveCfg = Release|x64
 		{D42E3A40-2620-4520-BEA0-CE1F3E064E08}.Release|x64.Build.0 = Release|x64
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Debug|Win32.Build.0 = Debug|Win32
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Debug|x64.ActiveCfg = Debug|x64
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Debug|x64.Build.0 = Debug|x64
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Release|Win32.ActiveCfg = Release|Win32
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Release|Win32.Build.0 = Release|Win32
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Release|x64.ActiveCfg = Release|x64
+		{7269D64F-994A-4233-9ADD-BAD415A07B64}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

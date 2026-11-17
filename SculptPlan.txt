@@ -275,17 +275,23 @@ Around it
       ones.
 
 Outstanding (2026-11-17, when the work was left for something else; pick up from here)
-  1. The bake is slow, and it's what makes Sculpt feel slow (question 5, not answered).  Measured on the starting
-     marble, a 1080 by 400 view, a GTX 1050 Ti and 24 cores: every change to a material bakes coarsely for about
-     100 ms on the window's thread (about 9 changes a second while a number is dragged), and 330 ms after the last
-     change the whole bake holds the window for about 1.7 s.  Both are CMeshBake sampling the solid texture (the
-     noises) on one thread.  To do, once answered: the bake's texels shared among threads (ThreadLib's
-     CWorkerThreadPool or BaseLib's CNativeThread); the workers sample through plain pointers and never copy a Ptr,
-     as its counting isn't safe between threads; compiled out for the 65C64 and the 816, which SupportLib also builds
-     for.  Then, if the whole bake still holds the window, it's run behind the window and shown when it's done.
-     Already mended: the node editor painted its whole back at every layout of the window (half the time of turning
-     the view; now only when a link's ends or its size change), Vulkan's frame was read back from slow memory (8.4 ms
-     to 0.4 ms), and a coarse bake is one sample a texel.  Turning the view is about 10 ms a frame.
+  1. The bake was slow, and it was what made Sculpt feel slow (question 5).  Measured on the starting marble, a
+     1080 by 400 view, a GTX 1050 Ti and 24 cores: every change to a material baked coarsely for about 100 ms on the
+     window's thread (about 9 changes a second while a number is dragged), and 330 ms after the last change the whole
+     bake held the window for about 1.7 s.  Both were CMeshBake sampling the solid texture (the noises) on one thread.
+     Done 2026-11-17 (step 17 of CommonLibraries' StandardLib/ThreadSafetyPlan.txt, which says how and why it is
+     safe): the bake's rows are shared among a pool of threads, one for each the hardware runs at once, which the
+     app owns (CSculptPage::SetJobs).  The image is the same byte for byte.  In the app, with the machine busy with
+     other work: a change's coarse bake 124 ms to 13 ms, the whole bake 2.3 s to 0.18 s.  TestSculptLib's
+     SCULPT_BAKE_REPORT prints every material's times on one thread and on the pool.
+     A material's texture (TextureSample) and a shape's Distance must not copy, assign or let go of a Ptr: the
+     pool's threads aren't registered to.  A Debug build says when one does, and TestSculptBakeJobs bakes every
+     starting material that way.
+     Left: the whole bake still holds the window while it runs (now under a fifth of a second); if that shows, it's
+     run behind the window and shown when it's done.
+     Already mended before: the node editor painted its whole back at every layout of the window (half the time of
+     turning the view; now only when a link's ends or its size change), Vulkan's frame was read back from slow memory
+     (8.4 ms to 0.4 ms), and a coarse bake is one sample a texel.  Turning the view is about 10 ms a frame.
   2. The status line's "ms a frame" is an average smoothed over many frames with the bakes' frames in it, so it reads
      high and isn't the time to turn the view.  Show the last frame's time, or leave the bakes out.
   3. The materials aren't tuned (step 23, question 4): the user's to try in Sculpt.  What they send or name is made
@@ -322,8 +328,8 @@ Questions for the user (kept as they come up; work carries on with the answer as
   5. Sculpt is slow because every change bakes the texture on one of the machine's cores, on the window's own thread
      (Outstanding, 1).  May the bake be shared among threads?  It should bring a change's 100 ms to about 10 ms and
      the 1.7 s to a fraction of a second, though that's a guess until it's built.  The cost is threads in SupportLib's
-     bake, with care that no Ptr is copied on them.  [Not answered; recommended: yes, threads first, and the whole
-     bake behind the window only if that isn't enough.]
+     bake, with care that no Ptr is copied on them.  [Answered 2026-11-17 by asking for the thread safety plan's
+     step 17: yes.  Done: Outstanding, 1.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.
