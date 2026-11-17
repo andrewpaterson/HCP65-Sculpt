@@ -32,6 +32,7 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 #include "WindowLib/Canvas.h"
 #include "WindowLib/ClearCanvasDraw.h"
 #include "WindowLib/JewelTheme.h"
+#include "SculptLib/SculptMaterials.h"
 #include "SculptTick.h"
 #include "SculptApp.h"
 
@@ -114,20 +115,31 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The menu bar along the top: File has Exit, Edit has Undo and Redo of
-// the material's graph, and Add the nodes that can be added to it (the
-// page's nodes make it and take its clicks).
+// The menu bar along the top: File has New (a material to start from),
+// Weather (the material there is, weathered on the shape shown) and
+// Exit; Edit has Undo and Redo of the material's graph; and Add the nodes
+// that can be added to it (the page's nodes make it and take its clicks).
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptApp::MakeMenus(void)
 {
 	Ptr<CMenuContainer>	pFileMenu;
 	Ptr<CMenuContainer>	pEditMenu;
+	size				i;
 
 	mpMenuBar = OMalloc<CMenuBar>(mpWindow, mpTheme);
 	mpMenuBar->SetAlignment(CSH_Stretch, CSV_Stretch);
 	pFileMenu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
 	mpMenuBar->AddMenu("File", pFileMenu);
+	mpNewMenu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
+	for (i = 0; i < NumSculptMaterials(); i++)
+	{
+		mpNewMenu->AddItem(GetSculptMaterialName(i));
+	}
+	mpNewMenu->GetItemClickEvent()->Add(this, &CSculptApp::NewMenuItemClicked);
+	pFileMenu->AddItem("New", NULL, mpNewMenu);
+	mpWeather = pFileMenu->AddItem("Weather");
+	pFileMenu->AddSeparator();
 	mpExit = pFileMenu->AddItem("Exit");
 	pEditMenu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
 	mpMenuBar->AddMenu("Edit", pEditMenu);
@@ -150,6 +162,8 @@ void CSculptApp::Class(void)
 	M_Pointer(mpMain);
 	M_Pointer(mpMenuBar);
 	M_Pointer(mpExit);
+	M_Pointer(mpNewMenu);
+	M_Pointer(mpWeather);
 	M_Pointer(mpUndo);
 	M_Pointer(mpRedo);
 	M_Pointer(mpPage);
@@ -216,6 +230,7 @@ bool CSculptApp::Run(void)
 	if (mbInputs)
 	{
 		mpMenuBar->GetItemClickEvent()->Remove(this);
+		mpNewMenu->GetItemClickEvent()->Remove(this);
 		mpWindow->SetComponentInput(NULL);
 	}
 	return mbValid;
@@ -279,6 +294,10 @@ void CSculptApp::MenuItemClicked(CMenuItem* pcItem)
 	{
 		mbExit = true;
 	}
+	else if (&mpWeather == pcItem)
+	{
+		mpPage->WeatherMaterial();
+	}
 	else if (&mpUndo == pcItem)
 	{
 		mpPage->GetNodes()->Undo();
@@ -286,6 +305,26 @@ void CSculptApp::MenuItemClicked(CMenuItem* pcItem)
 	else if (&mpRedo == pcItem)
 	{
 		mpPage->GetNodes()->Redo();
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// One of File's New's materials was clicked: it's the page's material,
+// the item's place in the menu being the material's in the list.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptApp::NewMenuItemClicked(CMenuItem* pcItem)
+{
+	size	i;
+
+	for (i = 0; i < NumSculptMaterials(); i++)
+	{
+		if (&mpNewMenu->GetItem(i) == pcItem)
+		{
+			mpPage->SetMaterial(MakeSculptMaterial(i, SCULPT_MATERIAL_SEED));
+		}
 	}
 }
 

@@ -30,6 +30,9 @@
     <ClCompile Include="SculptPanel.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="SculptMaterials.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptPage.h">
@@ -54,6 +57,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SculptPanel.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SculptMaterials.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

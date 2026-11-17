@@ -237,6 +237,9 @@ Around it
     as colours means baking normals where the colours go, which the bake has no way to be asked for.
 20. The materials as a menu: New from Marble, Wood, Stone, Rust, Bricks, Tiles, Weathered, each made by its function
     and laid out.
+    Done: File's New has the six (SculptMaterials.h), each made by its function and arranged.  Weathered isn't a
+    seventh: it's a material round another on a shape, so it's File's Weather, which weathers the material there is on
+    the shape shown.  A weathered material has Cavity nodes, of that shape.
 21. File's New, Open, Save, Save As: the one file.
 22. A material as a configuration other programs use: the saved graph without Sculpt's node positions, read by one
     call that gives its top texture.  SolidMaterials' functions stay, as the code way of making the same thing.

@@ -390,6 +390,26 @@ void CSculptPage::SetMaterial(Ptr<CSolidTexture> pSurface)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The material as it would be after years outside on the shape now
+// shown (MakeSolidWeathered): dirt in the shape's hollows, wear along its
+// edges and moss on what faces up, round the material there is.  Nothing
+// with no shape to weather.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::WeatherMaterial(void)
+{
+	Ptr<CShape>		pShape;
+
+	pShape = GetShape();
+	if (pShape.IsNotNull())
+	{
+		SetMaterial(MakeSolidWeathered(mpNodes->GetGraph()->GetSurface(), pShape, SCULPT_MATERIAL_SEED));
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The graph's surface, which may be another texture now, is baked again.
 //
 //////////////////////////////////////////////////////////////////////////

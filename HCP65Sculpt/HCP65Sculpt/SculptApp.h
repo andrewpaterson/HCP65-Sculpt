@@ -57,6 +57,8 @@ protected:
 	Ptr<CGridContainer>			mpMain;  //The menu bar over the page.
 	Ptr<CMenuBar>				mpMenuBar;
 	Ptr<CMenuItem>				mpExit;
+	Ptr<CMenuContainer>			mpNewMenu;  //A material to start from: its items are in SculptMaterials.h's order.
+	Ptr<CMenuItem>				mpWeather;
 	Ptr<CMenuItem>				mpUndo;
 	Ptr<CMenuItem>				mpRedo;
 	Ptr<CSculptPage>			mpPage;
@@ -81,6 +83,7 @@ public:
 	bool	Run(void);
 	void	Tick(Ptr<CWindow> pWindow);
 	void	MenuItemClicked(CMenuItem* pcItem);
+	void	NewMenuItemClicked(CMenuItem* pcItem);
 
 protected:
 	void	MakeMenus(void);

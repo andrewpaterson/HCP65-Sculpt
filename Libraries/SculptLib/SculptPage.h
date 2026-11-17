@@ -101,6 +101,7 @@ public:
 	Ptr<CShape>			GetShape(void);
 	void				PanelChanged(void);
 	void				SetMaterial(Ptr<CSolidTexture> pSurface);
+	void				WeatherMaterial(void);
 	void				MaterialChanged(void);
 	bool				IsCoarse(void);
 	void				BakeFine(void);

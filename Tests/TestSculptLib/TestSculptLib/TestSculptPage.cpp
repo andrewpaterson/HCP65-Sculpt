@@ -25,6 +25,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "WindowLib/Canvas.h"
 #include "ProceduralLib/SolidChannel.h"
 #include "ProceduralLib/SolidMaterials.h"
+#include "SculptLib/SculptMaterials.h"
 #include "SculptLib/SculptPage.h"
 #include "SculptTestWindow.h"
 #include "TestLib/Assert.h"
@@ -106,6 +107,8 @@ void TestSculptPageSpheres(void)
 		SComponentInputEvent		sEvent;
 		SInt32Vec2					sSize;
 		uint32						uiBackground;
+		size						uiNodes;
+		size						i;
 
 		pWindow = SculptTestWindow(pFactory, TEST_SCULPT_PAGE_WIDTH, TEST_SCULPT_PAGE_HEIGHT, TestSculptPageTick, &sTest);
 		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
@@ -216,6 +219,31 @@ void TestSculptPageSpheres(void)
 		AssertTrue(pPage->GetNodes()->GetGraph()->GetNode(1)->mpTexture == pPage->GetNodes()->GetGraph()->GetSurface());
 		AssertString("Material Output", pPage->GetNodes()->GetEditor()->GetNode(0)->GetTitle());
 		AssertTrue(pPage->IsCoarse());
+
+		//Each of the materials there are to start from is a graph of more than its output; one there isn't is none.
+		AssertSize(6, NumSculptMaterials());
+		AssertString("Marble", GetSculptMaterialName(0));
+		AssertNull((void*)GetSculptMaterialName(6));
+		AssertTrue(MakeSculptMaterial(6, 1).IsNull());
+		for (i = 0; i < NumSculptMaterials(); i++)
+		{
+			pPage->SetMaterial(MakeSculptMaterial(i, 1));
+			AssertTrue(pPage->GetNodes()->GetEditor()->NumNodes() > 2);
+			AssertFalse(pPage->GetNodes()->CanUndo());
+		}
+
+		//Weathered on a sphere it's a larger graph round the same material; with no shape nothing is.
+		pPage->GetPanel()->SetShape(SS_Sphere);
+		pPage->PanelChanged();
+		pPage->SetMaterial(MakeSculptMaterial(0, 1));
+		uiNodes = pPage->GetNodes()->GetEditor()->NumNodes();
+		pPage->WeatherMaterial();
+		AssertTrue(pPage->GetNodes()->GetEditor()->NumNodes() > uiNodes + 3);
+		uiNodes = pPage->GetNodes()->GetEditor()->NumNodes();
+		pPage->GetPanel()->SetShape(SS_Sculpted);
+		pPage->PanelChanged();
+		pPage->WeatherMaterial();
+		AssertSize(uiNodes, pPage->GetNodes()->GetEditor()->NumNodes());
 
 		//A setting changed in a node bakes coarsely again.
 		pPage->BakeFine();
