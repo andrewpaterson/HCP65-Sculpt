@@ -109,6 +109,13 @@ The project
    solution); the tester builds and runs as it did.  Then the turntable split out as a struct, CSceneView made (its
    buttons told to it) and the tester's scene tab put on it, and TestSceneViewLib (the turntable, ScreenToPlane, a
    small scene drawn by the rasteriser; Vulkan needs a device and isn't tested).
+   Done.  STurntable (Turntable.h) is the view's maths; CSceneCanvasDraw keeps two, where the view started and where it
+   is.  CSceneView's left button is only held back for a click when something is told of clicks, so the tester's scene
+   tab turns at once as it did.  CSceneCanvasDraw gained UseVulkan (false draws with the rasteriser and never looks
+   for a device: the tests) and GetImage (what it last drew).  Found on the way: CInstanceMesh::Pose gave the positions
+   of the editor's mesh before its modifiers, so a mesh made by modifiers had no bounds and was framed as if at the
+   origin; it poses the editor's output now, as it's drawn.  TestSceneViewLib: the turntable, and a box in a window
+   with no screen drawn by the rasteriser, zoomed, put back and clicked.
 2. HCP65-Sculpt's project: the solution, the project, CMake; an app that opens an empty window with a menu (File:
    Exit).
 3. CIsosurfacePage moved to Sculpt as its page (CSculptPage) with Blender's buttons: spheres dropped and baked with
@@ -152,6 +159,11 @@ Around it
     call that gives its top texture.  SolidMaterials' functions stay, as the code way of making the same thing.
 23. Tune the seven materials in Sculpt; the gallery again.
 24. Clean up; the plan's Done notes.
+
+Questions for the user (kept as they come up; work carries on with the answer assumed in brackets)
+  1. Sculpt can only be tried by hand on a screen.  Tests draw it into images with no screen (WinRefLib), which is how
+     it's checked as it's built.  May a Xephyr window be opened on your desktop to drive it with a real pointer, as was
+     done for the IDE's docking?  [Assumed: no, until you say; tests and images only.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.
