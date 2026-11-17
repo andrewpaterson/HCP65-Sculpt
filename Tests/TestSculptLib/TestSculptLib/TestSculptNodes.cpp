@@ -449,6 +449,138 @@ void TestSculptNodesSettings(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A ramp's node has a bar of its keys.  A stop moved, recoloured, added
+// or removed is the ramp's key: moved past another its key is too, and
+// keeps its height and shine; a stop added is the ramp's sample there;
+// the chosen key's other numbers are changed under the bar.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptNodesRamp(void)
+{
+	ObjectsInit();
+	{
+		Ptr<CWinRefWindowFactory>	pFactory;
+		Ptr<CWindow>				pWindow;
+		Ptr<CFontColours>			pFontColours;
+		Ptr<CWindowTheme>			pTheme;
+		Ptr<CNodeEditor>			pEditor;
+		Ptr<CSculptNodes>			pNodes;
+		Ptr<CSolidRamp>				pRamp;
+		Ptr<CSculptRamp>			pKeys;
+		Ptr<CColourRampBar>			pBar;
+		SDialogLook					sLook;
+		STestSculptNodesChanges		sChanges;
+		SSolidSample				sSample;
+
+		pWindow = SculptTestWindow(pFactory, 800, 600, TestSculptNodesTick, NULL);
+		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
+		pEditor = OMalloc<CNodeEditor>(pWindow, pTheme);
+		pWindow->SetContainer(pEditor);
+		pNodes = OMalloc<CSculptNodes>(pEditor);
+		sChanges.iChanges = 0;
+		pNodes->GetChangeEvent()->Add(&sChanges, &STestSculptNodesChanges::Changed);
+
+		//Black and flat at 0, red and raised at 0.5, white and shiny at 1.
+		pRamp = OMalloc<CSolidRamp>(Ptr<CSolidTexture>());
+		sSample.Init();
+		pRamp->AddKey(0.0f, &sSample);
+		sSample.Init(Set32BitColour((uint8)255, (uint8)0, (uint8)0));
+		sSample.fHeight = 0.2f;
+		pRamp->AddKey(0.5f, &sSample);
+		sSample.Init(Set32BitColour((uint8)255, (uint8)255, (uint8)255));
+		sSample.fShine = 0.8f;
+		pRamp->AddKey(1.0f, &sSample);
+		pNodes->SetGraph(OMalloc<CSculptGraph>(pRamp));
+		pWindow->Layout();
+
+		AssertTrue(pNodes->FindRamp(NULL).IsNull());
+		pKeys = pNodes->FindRamp(&pRamp);
+		pBar = pKeys->GetBar();
+		AssertSize(3, pBar->NumStops());
+		AssertFloat(0.5f, pBar->GetStop(1)->fPlace, 6);
+		AssertFloat(1.0f, pBar->GetStop(1)->afColour[0], 6);
+		AssertFloat(0.0f, pBar->GetStop(1)->afColour[1], 6);
+		AssertInt(0, pBar->GetChosen());
+		AssertDouble(0.0, pKeys->GetExtra(0)->GetValue(), 6);
+
+		//The red key chosen: its height shows.  Changed, it's the key's.
+		pBar->Choose(1);
+		AssertDouble(0.2, pKeys->GetExtra(0)->GetValue(), 6);
+		pKeys->GetExtra(0)->SetValue(0.3);
+		pKeys->ExtraChanged(&pKeys->GetExtra(0));
+		AssertFloat(0.3f, pRamp->masKeys.Get(1)->sSample.fHeight, 6);
+		pKeys->GetExtra(3)->SetValue(0.6);
+		pKeys->ExtraChanged(&pKeys->GetExtra(3));
+		AssertFloat(0.6f, pRamp->masKeys.Get(1)->sSample.fGlow, 6);
+		AssertInt(2, sChanges.iChanges);
+
+		//Recoloured green, it keeps its height.
+		pBar->GetColour()->SetColour(0.0f, 1.0f, 0.0f);
+		pBar->ColourChanged(&pBar->GetColour());
+		AssertFloat(0.0f, pRamp->masKeys.Get(1)->sSample.sColour.x, 6);
+		AssertFloat(1.0f, pRamp->masKeys.Get(1)->sSample.sColour.y, 6);
+		AssertFloat(0.3f, pRamp->masKeys.Get(1)->sSample.fHeight, 6);
+		AssertInt(3, sChanges.iChanges);
+
+		//Moved to 0.25 it's still the second key; moved past the white one it's the last, with its height.
+		pBar->GetPlace()->SetValue(0.25);
+		pBar->PlaceChanged(&pBar->GetPlace());
+		AssertFloat(0.25f, pRamp->masKeys.Get(1)->fValue, 6);
+		pRamp->masKeys.Get(2)->fValue = 0.75f;  //The white key, by hand,
+		pNodes->SetGraph(OMalloc<CSculptGraph>(pRamp));  //and its node made again.
+		pKeys = pNodes->FindRamp(&pRamp);
+		pBar = pKeys->GetBar();
+		pBar->Choose(1);
+		sChanges.iChanges = 0;
+		pBar->GetPlace()->SetValue(0.9);
+		pBar->PlaceChanged(&pBar->GetPlace());
+		AssertSize(3, pRamp->masKeys.NumElements());
+		AssertFloat(0.75f, pRamp->masKeys.Get(1)->fValue, 6);
+		AssertFloat(0.8f, pRamp->masKeys.Get(1)->sSample.fShine, 6);
+		AssertFloat(0.9f, pRamp->masKeys.Get(2)->fValue, 6);
+		AssertFloat(0.3f, pRamp->masKeys.Get(2)->sSample.fHeight, 6);
+		AssertFloat(1.0f, pRamp->masKeys.Get(2)->sSample.sColour.y, 6);
+		AssertInt(2, pBar->GetChosen());
+		AssertDouble(0.3, pKeys->GetExtra(0)->GetValue(), 6);
+		AssertInt(1, sChanges.iChanges);
+
+		//A stop added between the white key and the green: half way, the ramp's sample there, height and all.
+		pBar->Choose(1);
+		pBar->AddClicked(NULL);
+		AssertSize(4, pRamp->masKeys.NumElements());
+		AssertFloat(0.825f, pRamp->masKeys.Get(2)->fValue, 5);
+		AssertFloat(0.15f, pRamp->masKeys.Get(2)->sSample.fHeight, 5);
+		AssertFloat(0.4f, pRamp->masKeys.Get(2)->sSample.fShine, 5);
+		AssertFloat(0.5f, pRamp->masKeys.Get(2)->sSample.sColour.x, 5);
+		AssertDouble(0.15, pKeys->GetExtra(0)->GetValue(), 5);
+
+		//Removed again, the keys either side are as they were.
+		pBar->RemoveClicked(NULL);
+		AssertSize(3, pRamp->masKeys.NumElements());
+		AssertFloat(0.75f, pRamp->masKeys.Get(1)->fValue, 6);
+		AssertFloat(0.9f, pRamp->masKeys.Get(2)->fValue, 6);
+		AssertFloat(0.3f, pRamp->masKeys.Get(2)->sSample.fHeight, 6);
+		AssertInt(3, sChanges.iChanges);
+
+		pNodes->GetChangeEvent()->Remove(&sChanges);
+		pBar = NULL;
+		pKeys = NULL;
+		pRamp = NULL;
+		pNodes = NULL;
+		pEditor = NULL;
+		sLook.Kill();
+		pTheme = NULL;
+		pFontColours = NULL;
+		SculptTestWindowDone(pWindow, pFactory);
+	}
+	AssertTrue(ORoot()->RemoveAll());
+	ObjectsFlush();
+	ObjectsKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptNodes(void)
@@ -457,6 +589,7 @@ void TestSculptNodes(void)
 
 	TestSculptNodesMarble();
 	TestSculptNodesSettings();
+	TestSculptNodesRamp();
 
 	TestStatistics();
 }

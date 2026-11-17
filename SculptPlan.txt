@@ -203,6 +203,11 @@ The graph in Sculpt
     ColourRGBToHSV and back.  In Sculpt it's what an input's own value is shown with (CSculptValue): the input's flat
     texture's colour, or for a factor (a ramp's, a mask's, a warp's amount) a number from 0 to 1 which is a grey.
 15. The ramp bar (CColourRampBar) on CSolidRamp's node.
+    Done: WindowLib's CColourRampBar (the bar of colours, a marker a stop, dragged past one another; + and -; the
+    chosen stop's place and colour), and in Sculpt CSculptRamp, which makes a ramp's keys from the bar's stops.  A key
+    is more than a colour (a height, shine, gloss and glow), which the bar knows nothing of: each key keeps the rest
+    of its sample wherever its stop is dragged, a stop added is the ramp's whole sample there, and the chosen key's
+    four other numbers are fields under the bar.
 16. Adding (Shift+A and the Add menu), removing, copying.
 17. CSolidChannel and CSolidCombine (Blender's Separate and Combine).
 18. Undo and redo.

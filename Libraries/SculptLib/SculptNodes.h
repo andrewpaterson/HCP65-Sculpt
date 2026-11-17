@@ -25,6 +25,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "WindowLib/NodeEditor.h"
 #include "SculptField.h"
 #include "SculptGraph.h"
+#include "SculptRamp.h"
 #include "SculptValue.h"
 
 
@@ -37,7 +38,8 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //moved, are the graph's.  Its change event is called whenever the material would be baked differently.
 //
 //Under a box's output are its texture's settings, a row for each field its Class() names that a node can show
-//(CSculptField): a number field for a number, three for a vector, a tick for a bool, a combo box for an enum.  A setting changed is put in the
+//(CSculptField): a number field for a number, three for a vector, a tick for a bool, a combo box for an enum.  A ramp's
+//keys, which are an array and no field of that kind, are a colour ramp bar (CSculptRamp).  A setting changed is put in the
 //texture and the change event called.
 //
 //An input shows its own value while nothing is linked to it (CSculptValue): a colour, or a number for a factor.  A value
@@ -54,6 +56,7 @@ protected:
 	Ptr<CSculptGraph>				mpGraph;
 	CArray<CSculptField>			mapFields;  //The settings the boxes show.
 	CArray<CSculptValue>			mapValues;  //The inputs' own values.
+	CArray<CSculptRamp>				mapRamps;  //The ramps' keys.
 	CComponentEvent<CSculptNodes>	mcChanged;
 
 public:
@@ -73,6 +76,7 @@ public:
 	size							NumFields(void);
 	Ptr<CSculptField>				GetField(size uiIndex);
 	Ptr<CSculptValue>				FindValue(CSculptNode* pcNode, size uiInput);
+	Ptr<CSculptRamp>				FindRamp(CSolidTexture* pcTexture);
 
 	bool							CanLink(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;
 	void							Linked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;

@@ -36,6 +36,7 @@ void CSculptNodes::Init(Ptr<CNodeEditor> pEditor)
 	mpEditor = pEditor;
 	mapFields.Init();
 	mapValues.Init();
+	mapRamps.Init();
 	mcChanged.Init();
 	mpEditor->SetListener(this);
 
@@ -53,6 +54,7 @@ void CSculptNodes::Class(void)
 	M_Pointer(mpGraph);
 	M_Embedded(mapFields);
 	M_Embedded(mapValues);
+	M_Embedded(mapRamps);
 	U_Unknown(CComponentEvent<CSculptNodes>, mcChanged);
 }
 
@@ -93,6 +95,7 @@ void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 	mpEditor->RemoveAllNodes();
 	mapFields.RemoveAll();
 	mapValues.RemoveAll();
+	mapRamps.RemoveAll();
 	mpGraph = pGraph;
 	if (mpGraph.IsNull())
 	{
@@ -171,6 +174,8 @@ void CSculptNodes::MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture)
 	Ptr<CWindowTheme>	pTheme;
 	Ptr<CSculptField>	pField;
 	Ptr<CComboBox>		pChoice;
+	Ptr<CSolidRamp>		pRampTexture;
+	Ptr<CSculptRamp>	pRamp;
 	CArrayVoidPtr*		papcFields;
 	CUnmanagedField*	pcField;
 	SSolidFieldShow*	psShow;
@@ -227,6 +232,38 @@ void CSculptNodes::MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture)
 		}
 	}
 	szLabel.Kill();
+
+	//A ramp's keys aren't a field a node can show: they have a bar.
+	pRampTexture = Ptr<CSolidRamp>(dynamic_cast<CSolidRamp*>(&pTexture));
+	if (pRampTexture.IsNotNull())
+	{
+		pRamp = OMalloc<CSculptRamp>(pRampTexture, this);
+		mapRamps.Add(pRamp);
+		pRamp->AddRows(pBox, pWindow, pTheme);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The keys of the ramp pcTexture: NULL if it isn't one of the graph's
+// ramps.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CSculptRamp> CSculptNodes::FindRamp(CSolidTexture* pcTexture)
+{
+	Ptr<CSculptRamp>	pRamp;
+	size				i;
+
+	for (i = 0; i < mapRamps.NumElements(); i++)
+	{
+		pRamp = mapRamps.Get(i);
+		if (&pRamp->GetRamp() == pcTexture)
+		{
+			return pRamp;
+		}
+	}
+	return NULL;
 }
 
 
