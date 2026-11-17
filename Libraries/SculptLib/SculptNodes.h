@@ -23,6 +23,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "StandardLib/Object.h"
 #include "WindowLib/ComponentEvent.h"
 #include "WindowLib/NodeEditor.h"
+#include "SculptField.h"
 #include "SculptGraph.h"
 
 
@@ -34,6 +35,10 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //a link for each input that's fed by one.  It is the editor's listener: a link made, taken off or not allowed, and a node
 //moved, are the graph's.  Its change event is called whenever the material would be baked differently.
 //
+//Under a box's output are its texture's settings, a row for each field its Class() names that a node can show
+//(CSculptField): a number field for a number, three for a vector, a tick for a bool.  A setting changed is put in the
+//texture and the change event called.
+//
 //A box's data is its node (the graph holds it).  Nodes that haven't been placed are arranged in columns by how far each
 //is from the output (CSculptGraph::GetDepth), the output on the right, as Blender's graphs read.
 class CSculptNodes : public CObject, public CNodeEditorListener
@@ -43,6 +48,7 @@ DESTRUCTABLE(CSculptNodes);
 protected:
 	Ptr<CNodeEditor>				mpEditor;
 	Ptr<CSculptGraph>				mpGraph;
+	CArray<CSculptField>			mapFields;  //The settings the boxes show.
 	CComponentEvent<CSculptNodes>	mcChanged;
 
 public:
@@ -58,6 +64,9 @@ public:
 	Ptr<CNodeBox>					FindBox(CSculptNode* pcNode);
 	static CSculptNode*				GetNode(CNodeBox* pcBox);
 	void							Arrange(void);
+	void							FieldChanged(void);
+	size							NumFields(void);
+	Ptr<CSculptField>				GetField(size uiIndex);
 
 	bool							CanLink(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;
 	void							Linked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;
@@ -66,6 +75,8 @@ public:
 
 protected:
 	Ptr<CNodeBox>					MakeBox(Ptr<CSculptNode> pNode);
+	void							MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture);
+	Ptr<CSculptField>				AddField(Ptr<CSolidTexture> pTexture, CUnmanagedField* pcField, size uiElement);
 	void							MakeLinks(void);
 };
 

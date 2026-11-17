@@ -23,12 +23,14 @@
     <ClCompile Include="SolidShow.cpp" />
     <ClCompile Include="SculptGraph.cpp" />
     <ClCompile Include="SculptNodes.cpp" />
+    <ClCompile Include="SculptField.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptPage.h" />
     <ClInclude Include="SolidShow.h" />
     <ClInclude Include="SculptGraph.h" />
     <ClInclude Include="SculptNodes.h" />
+    <ClInclude Include="SculptField.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E262449F-EA8D-4BAB-B5DB-331976595327}</ProjectGuid>

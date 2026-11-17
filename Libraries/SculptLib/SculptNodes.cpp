@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include "StandardLib/Class.h"
 #include "StandardLib/ClassDefines.h"
 #include "StandardLib/Objects.h"
 #include "SolidShow.h"
@@ -33,6 +34,7 @@ void CSculptNodes::Init(Ptr<CNodeEditor> pEditor)
 	PreInit();
 
 	mpEditor = pEditor;
+	mapFields.Init();
 	mcChanged.Init();
 	mpEditor->SetListener(this);
 
@@ -48,6 +50,7 @@ void CSculptNodes::Class(void)
 {
 	M_Pointer(mpEditor);
 	M_Pointer(mpGraph);
+	M_Embedded(mapFields);
 	U_Unknown(CComponentEvent<CSculptNodes>, mcChanged);
 }
 
@@ -71,6 +74,8 @@ Ptr<CSculptGraph> CSculptNodes::GetGraph(void) { return mpGraph; }
 Ptr<CNodeEditor> CSculptNodes::GetEditor(void) { return mpEditor; }
 CComponentEvent<CSculptNodes>* CSculptNodes::GetChangeEvent(void) { return &mcChanged; }
 CSculptNode* CSculptNodes::GetNode(CNodeBox* pcBox) { return (CSculptNode*)pcBox->GetData(); }
+size CSculptNodes::NumFields(void) { return mapFields.NumElements(); }
+Ptr<CSculptField> CSculptNodes::GetField(size uiIndex) { return mapFields.Get(uiIndex); }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -84,6 +89,7 @@ void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 	size	i;
 
 	mpEditor->RemoveAllNodes();
+	mapFields.RemoveAll();
 	mpGraph = pGraph;
 	if (mpGraph.IsNull())
 	{
@@ -102,7 +108,7 @@ void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 //////////////////////////////////////////////////////////////////////////
 //
 // A node's box: its title and kind's colour, its output (the output
-// node has none) and its inputs.
+// node has none), its texture's settings and its inputs.
 //
 //////////////////////////////////////////////////////////////////////////
 Ptr<CNodeBox> CSculptNodes::MakeBox(Ptr<CSculptNode> pNode)
@@ -130,6 +136,7 @@ Ptr<CNodeBox> CSculptNodes::MakeBox(Ptr<CSculptNode> pNode)
 	if (!pNode->IsOutput())
 	{
 		pBox->AddOutput("Texture", SOLID_SOCKET_COLOUR);
+		MakeSettings(pBox, pNode->mpTexture);
 	}
 	for (i = 0; i < mpGraph->NumInputs(&pNode); i++)
 	{
@@ -139,6 +146,89 @@ Ptr<CNodeBox> CSculptNodes::MakeBox(Ptr<CSculptNode> pNode)
 	}
 	szText.Kill();
 	return pBox;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A row in pBox for each of pTexture's fields that a node can show and
+// that isn't hidden, in the order its Class() names them: a number, a
+// tick, or a vector's three numbers under its label.  Enums come later.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture)
+{
+	static const char*	aszAxes[3] = { "X", "Y", "Z" };
+	Ptr<CWindow>		pWindow;
+	Ptr<CWindowTheme>	pTheme;
+	CArrayVoidPtr*		papcFields;
+	CUnmanagedField*	pcField;
+	SSolidFieldShow*	psShow;
+	ESculptFieldKind	eKind;
+	CChars				szLabel;
+	size				i;
+	size				j;
+
+	pWindow = mpEditor->GetWindow();
+	pTheme = mpEditor->GetTheme();
+	szLabel.Init();
+	papcFields = pTexture->GetClass()->GetUnmanagedFields();
+	for (i = 0; i < papcFields->NumElements(); i++)
+	{
+		pcField = (CUnmanagedField*)papcFields->GetPtr(i);
+		psShow = FindSolidFieldShow(&pTexture, pcField->GetName());
+		eKind = CSculptField::Kind(pcField);
+		if ((psShow != NULL) && (psShow->eShow == SFS_Hidden))
+		{
+			continue;
+		}
+
+		szLabel.Clear();
+		SolidFieldLabel(&szLabel, &pTexture, pcField->GetName());
+		if ((eKind == SFK_Number) || (eKind == SFK_Whole))
+		{
+			pBox->AddRow(AddField(pTexture, pcField, 0)->MakeNumber(pWindow, pTheme, szLabel.Text()));
+		}
+		else if (eKind == SFK_Tick)
+		{
+			pBox->AddRow(AddField(pTexture, pcField, 0)->MakeTick(pWindow, pTheme, szLabel.Text()));
+		}
+		else if (eKind == SFK_Vector)
+		{
+			pBox->AddRow(OMalloc<CLabel>(pWindow, pTheme->GetFont(), szLabel.Text()));
+			for (j = 0; j < 3; j++)
+			{
+				pBox->AddRow(AddField(pTexture, pcField, j)->MakeNumber(pWindow, pTheme, aszAxes[j]));
+			}
+		}
+	}
+	szLabel.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A setting of pTexture's the nodes hold.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CSculptField> CSculptNodes::AddField(Ptr<CSolidTexture> pTexture, CUnmanagedField* pcField, size uiElement)
+{
+	Ptr<CSculptField>	pField;
+
+	pField = OMalloc<CSculptField>(pTexture, pcField, uiElement, this);
+	mapFields.Add(pField);
+	return pField;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A setting was changed: the material is another.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::FieldChanged(void)
+{
+	mcChanged.Call(this);
 }
 
 

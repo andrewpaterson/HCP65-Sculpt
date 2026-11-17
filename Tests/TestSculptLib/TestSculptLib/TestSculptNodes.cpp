@@ -18,7 +18,14 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include <string.h>
 #include "StandardLib/Objects.h"
+#include "ProceduralLib/SolidAdjust.h"
+#include "ProceduralLib/SolidBricks.h"
+#include "ProceduralLib/SolidMerge.h"
+#include "ProceduralLib/SolidNoise.h"
+#include "ProceduralLib/SolidSlope.h"
+#include "ProceduralLib/SolidWarp.h"
 #include "ProceduralLib/SolidMaterials.h"
 #include "ProceduralLib/SolidRamp.h"
 #include "SculptLib/SculptNodes.h"
@@ -201,6 +208,178 @@ void TestSculptNodesMarble(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The settings of a graph's nodes named szName ("mfAmount" say), in the
+// nodes' order: the uiIndex'th.
+//
+//////////////////////////////////////////////////////////////////////////
+static Ptr<CSculptField> TestSculptNodesField(Ptr<CSculptNodes> pNodes, const char* szName, size uiIndex)
+{
+	Ptr<CSculptField>	pField;
+	size				i;
+
+	for (i = 0; i < pNodes->NumFields(); i++)
+	{
+		pField = pNodes->GetField(i);
+		if (strcmp(pField->GetFieldName(), szName) == 0)
+		{
+			if (uiIndex == 0)
+			{
+				return pField;
+			}
+			uiIndex--;
+		}
+	}
+	return NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A node's settings are its texture's fields: a float, an integer, a
+// size, a bool and a vector's three floats each read and set as what it
+// is; hidden fields and enums aren't there.  A setting changed by its
+// component is put in the texture, the texture is told (a slope's
+// direction is a unit again) and the change event called.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptNodesSettings(void)
+{
+	ObjectsInit();
+	{
+		Ptr<CWinRefWindowFactory>	pFactory;
+		Ptr<CWindow>				pWindow;
+		Ptr<CFontColours>			pFontColours;
+		Ptr<CWindowTheme>			pTheme;
+		Ptr<CNodeEditor>			pEditor;
+		Ptr<CSculptNodes>			pNodes;
+		Ptr<CSolidAdjust>			pAdjust;
+		Ptr<CSolidBricks>			pBricks;
+		Ptr<CSolidNoise>			pNoise;
+		Ptr<CSolidSlope>			pSlope;
+		Ptr<CSculptField>			pField;
+		Ptr<CNumberField>			pNumber;
+		Ptr<CCheckBox>				pTick;
+		SDialogLook					sLook;
+		STestSculptNodesChanges		sChanges;
+		SFloat32Vec3				sSize;
+
+		pWindow = SculptTestWindow(pFactory, 1000, 600, TestSculptNodesTick, NULL);
+		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
+		pEditor = OMalloc<CNodeEditor>(pWindow, pTheme);
+		pWindow->SetContainer(pEditor);
+		pNodes = OMalloc<CSculptNodes>(pEditor);
+		sChanges.iChanges = 0;
+		pNodes->GetChangeEvent()->Add(&sChanges, &STestSculptNodesChanges::Changed);
+
+		//An adjust of a merge of bricks, a noise and... a slope warped by the noise.
+		sSize.Init(0.3f, 0.15f, 0.1f);
+		pBricks = OMalloc<CSolidBricks>(SB_Brick, &sSize, 0.1f, 0.5f, 9);
+		pNoise = OMalloc<CSolidNoise>(FN_Turbulence, 6, 11);
+		pSlope = OMalloc<CSolidSlope>();
+		pAdjust = OMalloc<CSolidAdjust>(OMalloc<CSolidMerge>(SM_Add, pBricks, OMalloc<CSolidWarp>(pSlope, pNoise, 0.25f)));
+		pNodes->SetGraph(OMalloc<CSculptGraph>(pAdjust));
+		pWindow->Layout();
+		AssertSize(7, pEditor->NumNodes());
+
+		//Every texture has a scale; the placement's origin and axes, and the enums, aren't settings.
+		AssertTrue(TestSculptNodesField(pNodes, "mfScale", 5).IsNotNull());
+		AssertTrue(TestSculptNodesField(pNodes, "mfScale", 6).IsNull());
+		AssertTrue(TestSculptNodesField(pNodes, "msOrigin", 0).IsNull());
+		AssertTrue(TestSculptNodesField(pNodes, "masAxes", 0).IsNull());
+		AssertTrue(TestSculptNodesField(pNodes, "meKind", 0).IsNull());
+
+		//A float.
+		pField = TestSculptNodesField(pNodes, "mfMortar", 0);
+		AssertDouble(0.1, pField->Get(), 6);
+		pField->Set(0.2);
+		AssertFloat(0.2f, pBricks->mfMortar, 6);
+
+		//A 32 bit integer and a size.
+		pField = TestSculptNodesField(pNodes, "muiSeed", 0);
+		AssertDouble(9.0, pField->Get(), 6);
+		pField->Set(123456.0);
+		AssertInt(123456, pBricks->muiSeed);
+		pField = TestSculptNodesField(pNodes, "muiOctaves", 0);
+		AssertDouble(6.0, pField->Get(), 6);
+		pField->Set(3.0);
+		AssertSize(3, pNoise->muiOctaves);
+		AssertInt(11, pNoise->muiSeed);  //Its neighbour is as it was.
+
+		//A bool.
+		pField = TestSculptNodesField(pNodes, "mbInvert", 0);
+		AssertDouble(0.0, pField->Get(), 6);
+		pField->Set(1.0);
+		AssertTrue(pAdjust->mbInvert);
+
+		//A vector is three settings.
+		AssertTrue(TestSculptNodesField(pNodes, "msSize", 3).IsNull());
+		pField = TestSculptNodesField(pNodes, "msSize", 1);
+		AssertDouble(0.15, pField->Get(), 6);
+		pField->Set(0.5);
+		AssertFloat3(SFloat32Vec3(0.3f, 0.5f, 0.1f), &pBricks->msSize, 6);
+
+		//Set, the texture is told its fields changed: a slope's direction is made a unit.
+		pField = TestSculptNodesField(pNodes, "msDirection", 2);
+		pField->Set(4.0);
+		AssertFloat3(SFloat32Vec3(0, 0, 1), &pSlope->msDirection, 6);
+		pField = TestSculptNodesField(pNodes, "msDirection", 0);
+		pField->Set(1.0);
+		AssertFloat3(SFloat32Vec3(0.70710678f, 0, 0.70710678f), &pSlope->msDirection, 5);
+		AssertInt(0, sChanges.iChanges);
+
+		//Changed by its component, the texture has the number and the change event is called.  The component is
+		//whole for an integer and kept to the range said of the field.
+		pField = TestSculptNodesField(pNodes, "mfAmount", 0);
+		pNumber = pField->MakeNumber(pWindow, pTheme, "Amount");
+		AssertDouble(0.25, pNumber->GetValue(), 6);
+		pNumber->SetValue(0.75);
+		pField->NumberChanged(&pNumber);
+		AssertDouble(0.75, pField->Get(), 6);
+		AssertInt(1, sChanges.iChanges);
+
+		pField = TestSculptNodesField(pNodes, "muiOctaves", 0);
+		pNumber = pField->MakeNumber(pWindow, pTheme, "Detail");
+		pNumber->SetValue(40.4);
+		AssertDouble(12.0, pNumber->GetValue(), 6);
+		pField->NumberChanged(&pNumber);
+		AssertSize(12, pNoise->muiOctaves);
+		AssertInt(2, sChanges.iChanges);
+
+		pField = TestSculptNodesField(pNodes, "mbInvert", 0);
+		pTick = pField->MakeTick(pWindow, pTheme, "Invert");
+		AssertTrue(pTick->IsTicked());
+		pTick->SetTicked(false);
+		pField->Ticked(&pTick);
+		AssertFalse(pAdjust->mbInvert);
+		AssertInt(3, sChanges.iChanges);
+
+		//Another graph: the first's settings are gone.
+		pNodes->SetGraph(OMalloc<CSculptGraph>(OMalloc<CSolidSlope>()));
+		AssertSize(4, pNodes->NumFields());  //A scale and a direction.
+
+		pNodes->GetChangeEvent()->Remove(&sChanges);
+		pTick = NULL;
+		pNumber = NULL;
+		pField = NULL;
+		pSlope = NULL;
+		pNoise = NULL;
+		pBricks = NULL;
+		pAdjust = NULL;
+		pNodes = NULL;
+		pEditor = NULL;
+		sLook.Kill();
+		pTheme = NULL;
+		pFontColours = NULL;
+		SculptTestWindowDone(pWindow, pFactory);
+	}
+	AssertTrue(ORoot()->RemoveAll());
+	ObjectsFlush();
+	ObjectsKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptNodes(void)
@@ -208,6 +387,7 @@ void TestSculptNodes(void)
 	BeginTests();
 
 	TestSculptNodesMarble();
+	TestSculptNodesSettings();
 
 	TestStatistics();
 }

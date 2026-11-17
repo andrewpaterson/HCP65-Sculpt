@@ -177,6 +177,9 @@ The graph in Sculpt
     in the editor bakes again.  Nodes not yet placed are arranged in columns by depth, the output on the right, and
     framed when the editor is first laid out.
 11. A node's rows from Class(): numbers, ticks, vectors; a change calls Changed() and bakes.
+    Done: CSculptField is one number of a texture (a field its Class() names, or one float of a vector) and makes the
+    component it's shown with, a number field or a tick; the component's change is put in the texture, the texture is
+    told (Changed) and the material baked.  Integers of any size and bools go through the one pair of Get and Set.
 12. Measure a bake of each material on each shape; decide the coarse density and the pause from the numbers, and build
     coarse now, whole when still.
 13. Enums as combos; the table of enums and ranges.
