@@ -119,6 +119,14 @@ The node editor (WindowLib, with tests at each step)
 5. CNumberField: dragged, typed in, a range's bar, a bad number put back.
 6. CNodeEditor: nodes as boxes with a header and sockets from the interface; pan, zoom, Home.
 7. Links drawn; selecting, box selecting, moving; making, replacing and removing links by dragging.
+   A link's curve is the diff view's (WindowLib's CDiffDividerDraw, MakeShapePath): a cubic Bezier leaving and
+   arriving flat, its controls half way across, flattened by CVectorPath's CubicTo and filled by CImageDraw.  The
+   diff fills a band between two such curves; a link is one curve with a width.  So the curve itself comes out of
+   the divider as a function both call (two points and where the controls are), and the link is stroked along it
+   with VectorShapes' AddVectorStroke, a round-ended stroke for each flattened edge, as Gerber's traces are.  Not
+   the divider's band with a link's width between its curves: that is thin where the curve is steep.  The
+   divider is always as wide as its curve; a link from a socket to one to its left needs the controls pushed out
+   past the ends (Blender's does the same), which the function takes as how far the controls are.
 The graph in Sculpt
 8. Operators with an input missing: each input's own value (ProceduralLib; tests).
 9. What a texture works out once from its fields (a placement's axes, a gradient's direction): find each, and give
