@@ -25,7 +25,10 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "SupportLib/Instance.h"
 #include "SupportLib/ShapeSmoothUnion.h"
 #include "ProceduralLib/SolidMaterials.h"
+#include "SupportLib/Box.h"
+#include "SupportLib/ShapeUnion.h"
 #include "SupportLib/Sphere.h"
+#include "ProceduralLib/SolidChannel.h"
 #include "WindowLib/Window.h"
 #include "SculptPage.h"
 
@@ -52,7 +55,7 @@ void CSculptPage::Init(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColou
 
 	mpStatus = OMalloc<CLabel>(pWindow, pFontColours->GetFont(psLook->pcTheme->GetColour(TC_Text)), "No spheres.");
 	mpStatus->SetAlignment(CSH_Left, CSV_Center);
-	mpHelp = OMalloc<CLabel>(pWindow, pFontColours->GetFont(psLook->pcTheme->GetColour(TC_Icon)), "Click to drop a sphere on the plane of the screen.  Middle drag to turn, with Shift to pan, wheel to zoom.  R renderer, Home view, Delete clears.");
+	mpHelp = OMalloc<CLabel>(pWindow, pFontColours->GetFont(psLook->pcTheme->GetColour(TC_Icon)), "Middle drag to turn, with Shift to pan, wheel to zoom.  R renderer, Home view.  Sculpted: click to drop a sphere, Delete clears.");
 	mpHelp->SetAlignment(CSH_Left, CSV_Center);
 
 	mpView = OMalloc<CSceneView>(pWindow, psLook->pcTheme, &mpStatus, SVB_MiddleTurns);
@@ -68,12 +71,16 @@ void CSculptPage::Init(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColou
 	mpSplit->SetAlignment(CSH_Stretch, CSV_Stretch);
 	mpSplit->SetComponents(mpView, mpEditor);
 	mpSplit->SetShare(SCULPT_VIEW_SHARE);
+	mpPanel = OMalloc<CSculptPanel>(pWindow, psLook->pcTheme);
+	mpPanel->GetChangeEvent()->Add(this, &CSculptPage::PanelChanged);
 
-	AddComponent(mpStatus, 0, 0, 1, 1, 1, 0);
-	AddComponent(mpHelp, 0, 1, 1, 1, 1, 0);
+	AddComponent(mpStatus, 0, 0, 2, 1, 1, 0);
+	AddComponent(mpHelp, 0, 1, 2, 1, 1, 0);
 	AddComponent(mpSplit, 0, 2, 1, 1, 1, 1);
+	AddComponent(mpPanel, 1, 2, 1, 1, 0, 1);
 
 	MakeScene();
+	mpPanel->SetBake(mpBake->miSamples, mpBake->mfRelief, &mpBake->msLight);
 	SetMaterial(MakeSolidMarble(SCULPT_MATERIAL_SEED));
 
 	PostInit();
@@ -94,13 +101,14 @@ void CSculptPage::Class(void)
 	M_Pointer(mpSplit);
 	M_Pointer(mpEditor);
 	M_Pointer(mpNodes);
+	M_Pointer(mpPanel);
 	M_Pointer(mpScene);
 	M_Pointer(mpMesh);
 	M_Pointer(mpShapeEditor);
 	M_Pointer(mpShapeNormals);
 	M_Pointer(mpUnwrap);
 	M_Pointer(mpBake);
-	M_Pointer(mpShape);
+	M_Pointer(mpSculpted);
 	U_Int32(miSpheres);
 	U_Bool(mbInScene);
 	U_Bool(mbCoarse);
@@ -127,6 +135,10 @@ void CSculptPage::Free(void)
 	if (mpNodes.IsNotNull())
 	{
 		mpNodes->GetChangeEvent()->Remove(this);
+	}
+	if (mpPanel.IsNotNull())
+	{
+		mpPanel->GetChangeEvent()->Remove(this);
 	}
 	CGridContainer::Free();
 }
@@ -190,30 +202,116 @@ static Ptr<CInstance> SculptInstance(Ptr<CMeshEditor> pEditor)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The editor's stack meshes mpShape again, its instance is in the scene
-// while there are spheres, and the view is drawn again: coarsely now and
-// finely once nothing more changes.
+// The editor's stack meshes the shape again and the view is drawn again:
+// coarsely now and finely once nothing more changes.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::Remesh(void)
 {
-	mpShapeEditor->mpShape = mpShape;
-	mpShapeNormals->mpShape = mpShape;
 	Rebake(true);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
+// What the material is looked at on, as the panel has it: a sphere a
+// unit in radius, a box 1.6 a side, the two met as the gallery has them
+// (the box turned, so not all its faces are square to the texture's
+// axes), or the spheres dropped.  NULL for no spheres yet.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CShape> CSculptPage::GetShape(void)
+{
+	Ptr<CShapeUnion>	pUnion;
+	SFloat32Box			sBox;
+	SFloat32Vec3		sCentre;
+	SFloat32Vec3		asAxes[3];
+	ESculptShape		eShape;
+
+	eShape = mpPanel->GetShape();
+	if (eShape == SS_Sculpted)
+	{
+		return mpSculpted;
+	}
+	if (eShape == SS_Sphere)
+	{
+		sCentre.Init(0, 0, 0);
+		return OMalloc<CSphere>(&sCentre, SCULPT_SPHERE_RADIUS);
+	}
+	if (eShape == SS_Box)
+	{
+		sCentre.Init(0, 0, 0);
+		asAxes[0].Init(1, 0, 0);
+		asAxes[1].Init(0, 1, 0);
+		asAxes[2].Init(0, 0, 1);
+		sBox.Init(&sCentre, &asAxes[0], 0.8f, &asAxes[1], 0.8f, &asAxes[2], 0.8f);
+		return OMalloc<CBox>(&sBox);
+	}
+
+	pUnion = OMalloc<CShapeUnion>();
+	sCentre.Init(-1.05f, 0.0f, 0.0f);
+	pUnion->Add(OMalloc<CSphere>(&sCentre, SCULPT_SPHERE_RADIUS));
+	sCentre.Init(1.0f, 0.0f, -0.2f);
+	asAxes[0].Init(0.5f, 0.8660254f, 0.0f);
+	asAxes[1].Init(-0.8660254f, 0.5f, 0.0f);
+	asAxes[2].Init(0, 0, 1);
+	sBox.Init(&sCentre, &asAxes[0], 0.8f, &asAxes[1], 0.8f, &asAxes[2], 0.8f);
+	pUnion->Add(OMalloc<CBox>(&sBox));
+	return pUnion;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What's baked: the material's surface, or for one of its channels a
+// grey of that channel of it.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CSolidTexture> CSculptPage::GetShown(void)
+{
+	Ptr<CSolidTexture>	pSurface;
+
+	pSurface = mpNodes->GetGraph()->GetSurface();
+	switch (mpPanel->GetShow())
+	{
+	case SSH_Height:	return OMalloc<CSolidChannel>(SCH_Height, pSurface);
+	case SSH_Shine:		return OMalloc<CSolidChannel>(SCH_Shine, pSurface);
+	case SSH_Gloss:		return OMalloc<CSolidChannel>(SCH_Gloss, pSurface);
+	case SSH_Glow:		return OMalloc<CSolidChannel>(SCH_Glow, pSurface);
+	default:			return pSurface;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The stack makes its mesh again (Touch moves its modifier counter,
-// which the render scene makes a new mesh for), unwrapped and baked at
-// the coarse density or the whole one.  A coarse bake posts the whole
-// one for SCULPT_FINE_PAUSE from now, in place of any already posted.
+// which the render scene makes a new mesh for) of the panel's shape,
+// unwrapped and baked as the panel says at the coarse density or the
+// whole one: only the baked show has relief, as a channel's greys and
+// the colour alone are the texture's own.  Its instance is in the scene
+// while there's a shape.  A coarse bake posts the whole one for
+// SCULPT_FINE_PAUSE from now, in place of any already posted.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::Rebake(bool bCoarse)
 {
-	CChars	szName;
+	Ptr<CShape>		pShape;
+	SFloat32Vec3	sLight;
+	CChars			szName;
+
+	pShape = GetShape();
+	mpShapeEditor->mpShape = pShape;
+	mpShapeNormals->mpShape = pShape;
+	mpBake->mpTexture = GetShown();
+	mpBake->miSamples = mpPanel->GetSamples();
+	mpBake->mfRelief = (mpPanel->GetShow() == SSH_Baked) ? mpPanel->GetRelief() : 0.0f;
+	mpPanel->GetLight(&sLight);
+	if (sLight.Magnitude() > 0.0f)
+	{
+		sLight.Normalize();
+		mpBake->msLight = sLight;
+	}
 
 	mpWindow->CancelPosted(this);
 	mbCoarse = bCoarse;
@@ -223,19 +321,23 @@ void CSculptPage::Rebake(bool bCoarse)
 	}
 	mpUnwrap->mfTexelsPerUnit = SCULPT_TEXELS_PER_UNIT * (mbCoarse ? SCULPT_COARSE_SHARE : 1.0f);
 	mpMesh->mcModifiers.Touch();
-	if ((miSpheres > 0) && !mbInScene)
+	if (pShape.IsNotNull() && !mbInScene)
 	{
 		mpScene->mapInstances.Add(SculptInstance(mpMesh));
 		mbInScene = true;
 	}
-	else if ((miSpheres == 0) && mbInScene)
+	else if (pShape.IsNull() && mbInScene)
 	{
 		mpScene->mapInstances.RemoveAll();
 		mbInScene = false;
 	}
 
 	szName.Init("Sculpt: ");
-	if (miSpheres == 0)
+	if (mpPanel->GetShape() != SS_Sculpted)
+	{
+		szName.Append("a material");
+	}
+	else if (miSpheres == 0)
 	{
 		szName.Append("no spheres");
 	}
@@ -243,6 +345,10 @@ void CSculptPage::Rebake(bool bCoarse)
 	{
 		szName.Append(miSpheres);
 		szName.Append((miSpheres == 1) ? " sphere" : " spheres");
+	}
+	if (mbCoarse)
+	{
+		szName.Append(", coarse");
 	}
 	mpView->GetDraw()->SceneChanged(szName.Text());
 	szName.Kill();
@@ -289,9 +395,23 @@ void CSculptPage::SetMaterial(Ptr<CSolidTexture> pSurface)
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::MaterialChanged(void)
 {
-	mpBake->mpTexture = mpNodes->GetGraph()->GetSurface();
 	Rebake(true);
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The panel's shape, show or bake settings were changed.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::PanelChanged(void)
+{
+	Rebake(true);
+}
+
+
+Ptr<CSculptPanel> CSculptPage::GetPanel(void) { return mpPanel; }
+Ptr<CMeshBake> CSculptPage::GetBake(void) { return mpBake; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -324,7 +444,8 @@ void CSculptPage::BakeFine(void)
 //
 // A sphere where the view's point x, y is on the plane of the screen,
 // joined to the others by a smooth union.  False if the point isn't on
-// the plane (the view hasn't been drawn yet).
+// the plane (the view hasn't been drawn yet), or the shape shown isn't
+// the sculpted one.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CSculptPage::DropSphere(int32 x, int32 y)
@@ -332,19 +453,19 @@ bool CSculptPage::DropSphere(int32 x, int32 y)
 	SFloat32Vec3	sCentre;
 	Ptr<CSphere>	pSphere;
 
-	if (!mpView->GetDraw()->ScreenToPlane(x, y, &sCentre))
+	if ((mpPanel->GetShape() != SS_Sculpted) || !mpView->GetDraw()->ScreenToPlane(x, y, &sCentre))
 	{
 		return false;
 	}
 
 	pSphere = OMalloc<CSphere>(&sCentre, SCULPT_SPHERE_RADIUS);
-	if (mpShape.IsNull())
+	if (mpSculpted.IsNull())
 	{
-		mpShape = pSphere;
+		mpSculpted = pSphere;
 	}
 	else
 	{
-		mpShape = OMalloc<CShapeSmoothUnion>(mpShape, pSphere, SCULPT_BLEND_RADIUS);
+		mpSculpted = OMalloc<CShapeSmoothUnion>(mpSculpted, pSphere, SCULPT_BLEND_RADIUS);
 	}
 	miSpheres++;
 	Remesh();
@@ -358,7 +479,7 @@ bool CSculptPage::DropSphere(int32 x, int32 y)
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::Clear(void)
 {
-	mpShape = NULL;
+	mpSculpted = NULL;
 	miSpheres = 0;
 	Remesh();
 }

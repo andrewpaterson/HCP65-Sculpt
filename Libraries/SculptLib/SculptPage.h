@@ -34,6 +34,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "ProceduralLib/MeshShapeNormals.h"
 #include "SceneViewLib/SceneView.h"
 #include "SculptNodes.h"
+#include "SculptPanel.h"
 
 
 #define SCULPT_SPHERE_RADIUS	1.0f	//Of each sphere dropped.
@@ -50,19 +51,21 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //Sculpt's page, as Blender's Shading workspace is laid out: what's being made in a view above (SceneViewLib's CSceneView,
 //with Blender's buttons: the middle button's drag turns the view, with Shift it pans, the wheel zooms, R switches between
 //Vulkan and the rasteriser and Home puts the view back), under a line saying what's drawn and a line of help; and its
-//material's graph in a node editor below (CSculptNodes), a sash between the two.
+//material's graph in a node editor below (CSculptNodes), a sash between the two.  To their right is a panel
+//(CSculptPanel) of what isn't the material's: the shape, what's shown, and the bake's settings.
 //
-//What's made is a shape of spheres meshed as one isosurface (ProceduralLib's CMeshShapeEditor on a CMeshEditor, its
-//normals from the shape by CMeshShapeNormals), unwrapped (CMeshUnwrap) and the material baked onto it (CMeshBake): the
-//graph's surface, baked again whenever the graph changes it.  The material starts as marble.
+//What's looked at is a shape meshed as an isosurface (ProceduralLib's CMeshShapeEditor on a CMeshEditor, its normals
+//from the shape by CMeshShapeNormals), unwrapped (CMeshUnwrap) and the material baked onto it (CMeshBake): the graph's
+//surface, or one channel of it as greys (the panel's Show), baked again whenever the graph or the panel changes it.
+//The material starts as marble and the shape as a sphere.  The shape can be a sphere, a box, the two met, or sculpted:
 //
 //A bake at the whole density is a quarter of a second to a second for a sphere (SculptPlan.txt, step 12), too long to
 //follow a number being dragged.  So a change, of the shape or of the material, is baked at once at a quarter of the
 //density, which is a sixteenth of the work, and at the whole density once nothing has changed for a third of a second
 //(the window's PostAfter).
-//Clicking the left button drops a sphere where the pointer is onto the plane of the screen, through what the view turns
-//about: at the start that's z = 0, the view looking along -z.  The spheres are joined by a smooth union, so they blend
-//where they meet.  Delete, or X, takes the spheres away.
+//spheres dropped by clicking the left button where the pointer is onto the plane of the screen, through what the view
+//turns about: at the start that's z = 0, the view looking along -z.  The spheres are joined by a smooth union, so they
+//blend where they meet.  Delete, or X, takes the spheres away.  Clicks drop nothing while another shape is shown.
 class CSculptPage : public CGridContainer
 {
 CONSTRUCTABLE(CSculptPage);
@@ -74,15 +77,16 @@ protected:
 	Ptr<CSplitContainer>	mpSplit;  //The view over the node editor.
 	Ptr<CNodeEditor>		mpEditor;
 	Ptr<CSculptNodes>		mpNodes;  //The material's graph, in mpEditor.
+	Ptr<CSculptPanel>		mpPanel;
 	Ptr<CScene>				mpScene;
 	Ptr<CMeshEditor>		mpMesh;  //Whose stack meshes mpShape.
 	Ptr<CMeshShapeEditor>	mpShapeEditor;
 	Ptr<CMeshShapeNormals>	mpShapeNormals;  //Its normals, from the same shape.
 	Ptr<CMeshUnwrap>		mpUnwrap;  //Its UVs,
 	Ptr<CMeshBake>			mpBake;  //and the material baked through them.
-	Ptr<CShape>				mpShape;  //The spheres so far, NULL for none.
+	Ptr<CShape>				mpSculpted;  //The spheres dropped so far, NULL for none.
 	int32					miSpheres;
-	bool					mbInScene;  //The editor's instance is in the scene: it's added with the first sphere.
+	bool					mbInScene;  //The editor's instance is in the scene: it is while there's a shape.
 	bool					mbCoarse;  //What's shown is baked at the coarse density, and the whole one is posted.
 
 public:
@@ -92,6 +96,10 @@ public:
 
 	Ptr<CSceneView>		GetView(void);
 	Ptr<CSculptNodes>	GetNodes(void);
+	Ptr<CSculptPanel>	GetPanel(void);
+	Ptr<CMeshBake>		GetBake(void);
+	Ptr<CShape>			GetShape(void);
+	void				PanelChanged(void);
 	void				SetMaterial(Ptr<CSolidTexture> pSurface);
 	void				MaterialChanged(void);
 	bool				IsCoarse(void);
@@ -107,6 +115,7 @@ protected:
 	void				MakeScene(void);
 	void				Remesh(void);
 	void				Rebake(bool bCoarse);
+	Ptr<CSolidTexture>	GetShown(void);
 };
 
 

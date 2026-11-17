@@ -23,6 +23,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "StandardLib/Objects.h"
 #include "SupportLib/PNGWriter.h"
 #include "WindowLib/Canvas.h"
+#include "ProceduralLib/SolidChannel.h"
 #include "ProceduralLib/SolidMaterials.h"
 #include "SculptLib/SculptPage.h"
 #include "SculptTestWindow.h"
@@ -99,6 +100,7 @@ void TestSculptPageSpheres(void)
 		Ptr<CSculptPage>			pPage;
 		Ptr<CSceneView>				pView;
 		Ptr<CImage>					pImage;
+		SFloat32Vec3				sLight;
 		SDialogLook					sLook;
 		STestSculptPage				sTest;
 		SComponentInputEvent		sEvent;
@@ -111,6 +113,51 @@ void TestSculptPageSpheres(void)
 		pPage = OMalloc<CSculptPage>(pWindow, &sLook, pFontColours, false);
 		pView = pPage->GetView();
 		AssertInt(0, pPage->NumSpheres());
+
+		//It starts with a sphere, baked with relief by a CMeshBake's own settings.
+		AssertInt(SS_Sphere, pPage->GetPanel()->GetShape());
+		AssertTrue(pPage->GetShape().IsNotNull());
+		AssertInt(SSH_Baked, pPage->GetPanel()->GetShow());
+		AssertInt(MESH_BAKE_SAMPLES, pPage->GetBake()->miSamples);
+		AssertFloat(1.0f, pPage->GetBake()->mfRelief, 6);
+		AssertTrue(pPage->GetBake()->mpTexture == pPage->GetNodes()->GetGraph()->GetSurface());
+		AssertFalse(pPage->DropSphere(10, 10));  //Nothing's dropped on a sphere.
+
+		//A box, and a sphere and a box, are shapes; a channel shown is a grey of it, with no relief; the colour alone
+		//is the material with no relief.
+		pPage->GetPanel()->SetShape(SS_Box);
+		pPage->PanelChanged();
+		AssertTrue(pPage->GetShape().IsNotNull());
+		pPage->GetPanel()->SetShape(SS_Both);
+		pPage->GetPanel()->SetShow(SSH_Height);
+		pPage->PanelChanged();
+		AssertTrue(pPage->GetShape().IsNotNull());
+		AssertNotNull(dynamic_cast<CSolidChannel*>(&pPage->GetBake()->mpTexture));
+		AssertInt(SCH_Height, Ptr<CSolidChannel>(pPage->GetBake()->mpTexture)->meChannel);
+		AssertTrue(Ptr<CSolidChannel>(pPage->GetBake()->mpTexture)->mpInput == pPage->GetNodes()->GetGraph()->GetSurface());
+		AssertFloat(0.0f, pPage->GetBake()->mfRelief, 6);
+		pPage->GetPanel()->SetShow(SSH_Colour);
+		pPage->PanelChanged();
+		AssertTrue(pPage->GetBake()->mpTexture == pPage->GetNodes()->GetGraph()->GetSurface());
+		AssertFloat(0.0f, pPage->GetBake()->mfRelief, 6);
+
+		//The bake's settings are the panel's; the light is made a unit, and none leaves it as it was.
+		sLight.Init(0, 0, 4);
+		pPage->GetPanel()->SetBake(2, 0.5f, &sLight);
+		pPage->GetPanel()->SetShow(SSH_Baked);
+		pPage->PanelChanged();
+		AssertInt(2, pPage->GetBake()->miSamples);
+		AssertFloat(0.5f, pPage->GetBake()->mfRelief, 6);
+		AssertFloat3(SFloat32Vec3(0, 0, 1), &pPage->GetBake()->msLight, 6);
+		sLight.Init(0, 0, 0);
+		pPage->GetPanel()->SetBake(1, 0.5f, &sLight);
+		pPage->PanelChanged();
+		AssertFloat3(SFloat32Vec3(0, 0, 1), &pPage->GetBake()->msLight, 6);
+
+		//Sculpted, with nothing dropped, is no shape.
+		pPage->GetPanel()->SetShape(SS_Sculpted);
+		pPage->PanelChanged();
+		AssertTrue(pPage->GetShape().IsNull());
 
 		//It starts with marble: five nodes.
 		AssertSize(5, pPage->GetNodes()->GetEditor()->NumNodes());
@@ -132,7 +179,7 @@ void TestSculptPageSpheres(void)
 			SavePNG(pWindow->GetCanvas()->GetImageOrNull(), getenv("SCULPT_PAGE_PICTURE"));
 		}
 		sSize = pView->GetActualSize();
-		AssertInt(TEST_SCULPT_PAGE_WIDTH, sSize.x);
+		AssertInt(TEST_SCULPT_PAGE_WIDTH - SCULPT_PANEL_WIDTH, sSize.x);
 		AssertTrue((sSize.y > TEST_SCULPT_PAGE_HEIGHT / 4) && (sSize.y < TEST_SCULPT_PAGE_HEIGHT * 3 / 4));  //Under the two lines of text, over the node editor.
 		AssertTrue(pPage->GetNodes()->GetEditor()->GetPosition().y > pView->GetPosition().y + sSize.y);
 

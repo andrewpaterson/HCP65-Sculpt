@@ -26,6 +26,7 @@
     <ClCompile Include="SculptField.cpp" />
     <ClCompile Include="SculptValue.cpp" />
     <ClCompile Include="SculptRamp.cpp" />
+    <ClCompile Include="SculptPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptPage.h" />
@@ -35,6 +36,7 @@
     <ClInclude Include="SculptField.h" />
     <ClInclude Include="SculptValue.h" />
     <ClInclude Include="SculptRamp.h" />
+    <ClInclude Include="SculptPanel.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E262449F-EA8D-4BAB-B5DB-331976595327}</ProjectGuid>

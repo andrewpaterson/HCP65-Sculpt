@@ -230,6 +230,11 @@ The graph in Sculpt
 Around it
 19. The shape and the bake's settings (samples, relief, the light) in a panel; what's shown (baked, one channel as
     greys, the normals).
+    Done: CSculptPanel, to the right of the view and the editor.  The shape starts as a sphere, so Sculpt opens showing
+    marble on one; the spheres dropped by clicking are the Sculpted shape, and clicks drop nothing on the others.  A
+    channel is shown by baking a CSolidChannel of the material; the colour alone is the material with no relief.
+    Not done: showing the normals.  The bake can make a normal image, but neither renderer draws one, and showing it
+    as colours means baking normals where the colours go, which the bake has no way to be asked for.
 20. The materials as a menu: New from Marble, Wood, Stone, Rust, Bricks, Tiles, Weathered, each made by its function
     and laid out.
 21. File's New, Open, Save, Save As: the one file.
