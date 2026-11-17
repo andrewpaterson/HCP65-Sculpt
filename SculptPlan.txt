@@ -3,7 +3,8 @@ HCP65-Sculpt: the plan
 A program for looking at and changing procedural materials on a shape: a 3D view over a node editor, as Blender's Shading
 workspace.  It began as "a textures tab" at the end of the texture generators' plan
 (CommonLibraries/Libraries/ProceduralLib/TexturePlan.txt, whose steps 1 to 38 made what it shows) and was moved here
-2026-11-17.  Proposed, nothing built.  What is decided and what is only proposed is said at each point.
+2026-11-17.  Built, steps 1 to 24, the same day: each step has a note of what was done and where that differs from what
+was proposed, and Questions for the user (near the end) lists what's the user's to answer or to know.
 
 
 The user's decisions (2026-11-17)
@@ -261,6 +262,17 @@ Around it
     And a box whose top lay where two courses of bricks meet was all mortar: the boxes' tops and bottoms are kept off
     the tenths of a unit.  The gallery is as it was, as no material changed.
 24. Clean up; the plan's Done notes.
+    Done.  Every step above has its note.  Tidied at the end: the page's description, and a Remesh that had come to do
+    nothing but bake.  What isn't done or isn't known, all in one place:
+      The node editor doesn't zoom (question 2), and the normals aren't shown (step 19).
+      The materials aren't tuned (question 4).
+      A Sculpt file doesn't keep the view or the history for undo; opening a file, and dropping spheres, aren't undone.
+      Sculpt has never been used with a real pointer and keys: it's tested by its tests, which call what the pointer
+      and keys call, and looked at through HCP65SculptRef's pictures (question 1).  Shift held with a click, and the
+      menus and file choosers of the app itself, are untested.
+      None of it has been built with Visual Studio.  The projects and solutions are there (HCP65Sculpt.sln,
+      TestSculptLib.sln, TestSceneViewLib.sln, and the new files in the libraries' projects), made from the existing
+      ones.
 
 Questions for the user (kept as they come up; work carries on with the answer assumed in brackets)
   1. Sculpt can only be tried by hand on a screen.  Tests draw it into images with no screen (WinRefLib), which is how

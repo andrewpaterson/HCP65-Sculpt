@@ -44,11 +44,11 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #define SCULPT_TEXELS_PER_UNIT	128.0f	//The baked texture's density,
 #define SCULPT_COARSE_SHARE		0.25f	//and how much of it a change is first shown at: a sixteenth of the texels.
 #define SCULPT_FINE_PAUSE		330		//Milliseconds after the last change before it's baked at the whole density.
-#define SCULPT_MATERIAL_SEED		1		//The material it starts with is marble of this seed.
+#define SCULPT_MATERIAL_SEED	1		//The material it starts with is marble of this seed.
 #define SCULPT_VIEW_SHARE		550		//Of the page's height the view has, out of SPLIT_CONTAINER_WHOLE: the node editor has the rest.
 
 
-//Sculpt's page, as Blender's Shading workspace is laid out: what's being made in a view above (SceneViewLib's CSceneView,
+//Sculpt's page, as Blender's Shading workspace is laid out: what's looked at in a view above (SceneViewLib's CSceneView,
 //with Blender's buttons: the middle button's drag turns the view, with Shift it pans, the wheel zooms, R switches between
 //Vulkan and the rasteriser and Home puts the view back), under a line saying what's drawn and a line of help; and its
 //material's graph in a node editor below (CSculptNodes), a sash between the two.  To their right is a panel
@@ -57,18 +57,19 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //What's looked at is a shape meshed as an isosurface (ProceduralLib's CMeshShapeEditor on a CMeshEditor, its normals
 //from the shape by CMeshShapeNormals), unwrapped (CMeshUnwrap) and the material baked onto it (CMeshBake): the graph's
 //surface, or one channel of it as greys (the panel's Show), baked again whenever the graph or the panel changes it.
-//The material starts as marble and the shape as a sphere.  The shape can be a sphere, a box, the two met, or sculpted:
+//The material starts as marble and the shape as a sphere.
 //
-//A bake at the whole density is a quarter of a second to a second for a sphere (SculptPlan.txt, step 12), too long to
-//follow a number being dragged.  So a change, of the shape or of the material, is baked at once at a quarter of the
-//density, which is a sixteenth of the work, and at the whole density once nothing has changed for a third of a second
-//(the window's PostAfter).
-//spheres dropped by clicking the left button where the pointer is onto the plane of the screen, through what the view
-//turns about: at the start that's z = 0, the view looking along -z.  The spheres are joined by a smooth union, so they
-//blend where they meet.  Delete, or X, takes the spheres away.  Clicks drop nothing while another shape is shown.
+//The shape is a sphere, a box, the two met, or sculpted: spheres dropped by clicking the left button where the pointer
+//is onto the plane of the screen, through what the view turns about.  The spheres are joined by a smooth union, so they
+//blend where they meet.  Delete, or X, takes them away.  Clicks drop nothing while another shape is shown.
 //
 //The materials are made with z up; the view turns about y.  So what's looked at is stood up in the view: its z is the
 //view's up, and its -y, its front, faces the view at the start.
+//
+//A bake at the whole density is a quarter of a second to a second for a sphere (SculptPlan.txt, step 12), too long to
+//follow a number being dragged.  So a change, of the shape, the material or the panel, is baked at once at a quarter of
+//the density, which is a sixteenth of the work, and at the whole density once nothing has changed for a third of a
+//second (the window's PostAfter).
 //
 //Save writes all of it but the view to one file (a CSculptDocument), and Open reads one, or a file of a material alone;
 //ExportMaterial writes the material alone, as another program reads it (ProceduralLib's ReadSolidMaterial).
@@ -123,7 +124,6 @@ public:
 
 protected:
 	void				MakeScene(void);
-	void				Remesh(void);
 	void				Rebake(bool bCoarse);
 	Ptr<CSolidTexture>	GetShown(void);
 };

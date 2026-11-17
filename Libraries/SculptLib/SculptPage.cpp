@@ -210,18 +210,6 @@ static Ptr<CInstance> SculptInstance(Ptr<CMeshEditor> pEditor)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The editor's stack meshes the shape again and the view is drawn again:
-// coarsely now and finely once nothing more changes.
-//
-//////////////////////////////////////////////////////////////////////////
-void CSculptPage::Remesh(void)
-{
-	Rebake(true);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // What the material is looked at on, as the panel has it: a sphere a
 // unit in radius, a box, the two met as the gallery has them (the box
 // turned about z, so its sides aren't square to the texture's axes), or
@@ -578,7 +566,7 @@ bool CSculptPage::DropSphere(int32 x, int32 y)
 		mpSculpted = OMalloc<CShapeSmoothUnion>(mpSculpted, pSphere, SCULPT_BLEND_RADIUS);
 	}
 	miSpheres++;
-	Remesh();
+	Rebake(true);
 	return true;
 }
 
@@ -591,7 +579,7 @@ void CSculptPage::Clear(void)
 {
 	mpSculpted = NULL;
 	miSpheres = 0;
-	Remesh();
+	Rebake(true);
 }
 
 
