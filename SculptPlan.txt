@@ -169,6 +169,13 @@ The graph in Sculpt
    angles), a slope's direction (a unit) and a ramp's keys (in order of their values).  Nothing else is.
 10. CSculptNode and the interface over the solid textures; Material Output; the split window with a made material
     (marble) shown as nodes, laid out left to right by how far each is from the output.
+    Done.  The node isn't CSculptNode alone: SculptLib has CSculptGraph (the material as nodes: a CSculptNode for the
+    output and for each texture, a texture's inputs found from its Class()'s pointers, links made and refused, values
+    given), CSculptNodes (the graph in a CNodeEditor, and its listener) and SolidShow (the table of what Class()
+    doesn't say: a class's title and kind, a field's label, range and enum names, and which pointers aren't inputs).
+    The page is a split, the view over the editor, and its material is marble, baked onto the spheres.  A link changed
+    in the editor bakes again.  Nodes not yet placed are arranged in columns by depth, the output on the right, and
+    framed when the editor is first laid out.
 11. A node's rows from Class(): numbers, ticks, vectors; a change calls Changed() and bakes.
 12. Measure a bake of each material on each shape; decide the coarse density and the pause from the numbers, and build
     coarse now, whole when still.

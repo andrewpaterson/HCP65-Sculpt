@@ -226,6 +226,8 @@
     <ClCompile Include="TestSculptLib.cpp" />
     <ClCompile Include="SculptTestWindow.cpp" />
     <ClCompile Include="TestSculptPage.cpp" />
+    <ClCompile Include="TestSculptGraph.cpp" />
+    <ClCompile Include="TestSculptNodes.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptTestWindow.h" />

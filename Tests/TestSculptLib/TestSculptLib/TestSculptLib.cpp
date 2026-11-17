@@ -8,6 +8,8 @@
 #include "TestLib/Assert.h"
 
 
+void TestSculptGraph(void);
+void TestSculptNodes(void);
 void TestSculptPage(void);
 
 
@@ -23,6 +25,8 @@ int __cdecl main(void)
 	MemoryInit();
 	DataIOInit();
 
+	TestSculptGraph();
+	TestSculptNodes();
 	TestSculptPage();
 
 	DataIOKill();

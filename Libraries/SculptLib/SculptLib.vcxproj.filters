@@ -9,9 +9,27 @@
     <ClCompile Include="SculptPage.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="SolidShow.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SculptGraph.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SculptNodes.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptPage.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SolidShow.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SculptGraph.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SculptNodes.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

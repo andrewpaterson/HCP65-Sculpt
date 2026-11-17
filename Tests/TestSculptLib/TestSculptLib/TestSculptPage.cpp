@@ -18,15 +18,19 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include <stdlib.h>
 #include <string.h>
 #include "StandardLib/Objects.h"
+#include "SupportLib/PNGWriter.h"
+#include "WindowLib/Canvas.h"
+#include "ProceduralLib/SolidMaterials.h"
 #include "SculptLib/SculptPage.h"
 #include "SculptTestWindow.h"
 #include "TestLib/Assert.h"
 
 
-#define TEST_SCULPT_PAGE_WIDTH	320
-#define TEST_SCULPT_PAGE_HEIGHT	240
+#define TEST_SCULPT_PAGE_WIDTH	1000
+#define TEST_SCULPT_PAGE_HEIGHT	700
 
 
 //What the page test's tick works on.
@@ -80,7 +84,8 @@ static SComponentInputEvent TestSculptPageEvent(int32 x, int32 y)
 // A sphere can't be dropped before the view's drawn (there's no plane
 // of the screen yet).  Dropped in the middle it's drawn there, with the
 // background at the view's corners.  A click on the view drops another,
-// and Delete takes them away.
+// and Delete takes them away.  The page's material is marble, its graph
+// in the node editor under the view, until it's given another.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptPageSpheres(void)
@@ -106,6 +111,10 @@ void TestSculptPageSpheres(void)
 		pPage = OMalloc<CSculptPage>(pWindow, &sLook, pFontColours, false);
 		pView = pPage->GetView();
 		AssertInt(0, pPage->NumSpheres());
+
+		//It starts with marble: five nodes.
+		AssertSize(5, pPage->GetNodes()->GetEditor()->NumNodes());
+		AssertSize(4, pPage->GetNodes()->GetEditor()->NumLinks());
 		AssertFalse(pPage->DropSphere(10, 10));
 		AssertInt(0, pPage->NumSpheres());
 
@@ -116,9 +125,16 @@ void TestSculptPageSpheres(void)
 
 		AssertTrue(sTest.bDropped);
 		AssertInt(1, pPage->NumSpheres());
+
+		//SCULPT_PAGE_PICTURE=file saves the window as it now is, to look at.
+		if (getenv("SCULPT_PAGE_PICTURE") != NULL)
+		{
+			SavePNG(pWindow->GetCanvas()->GetImageOrNull(), getenv("SCULPT_PAGE_PICTURE"));
+		}
 		sSize = pView->GetActualSize();
 		AssertInt(TEST_SCULPT_PAGE_WIDTH, sSize.x);
-		AssertTrue((sSize.y > TEST_SCULPT_PAGE_HEIGHT / 2) && (sSize.y < TEST_SCULPT_PAGE_HEIGHT));  //Under the two lines of text.
+		AssertTrue((sSize.y > TEST_SCULPT_PAGE_HEIGHT / 4) && (sSize.y < TEST_SCULPT_PAGE_HEIGHT * 3 / 4));  //Under the two lines of text, over the node editor.
+		AssertTrue(pPage->GetNodes()->GetEditor()->GetPosition().y > pView->GetPosition().y + sSize.y);
 
 		pImage = pView->GetDraw()->GetImage();
 		AssertTrue(pImage.IsNotNull());
@@ -140,6 +156,11 @@ void TestSculptPageSpheres(void)
 
 		pPage->DeleteAction(&sEvent);
 		AssertInt(0, pPage->NumSpheres());
+
+		//Another material: its graph is in the editor.
+		pPage->SetMaterial(MakeSolidWood(1));
+		AssertTrue(pPage->GetNodes()->GetGraph()->GetNode(1)->mpTexture == pPage->GetNodes()->GetGraph()->GetSurface());
+		AssertString("Material Output", pPage->GetNodes()->GetEditor()->GetNode(0)->GetTitle());
 
 		pImage = NULL;
 		pView = NULL;

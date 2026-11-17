@@ -24,7 +24,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "SupportLib/Camera.h"
 #include "SupportLib/Instance.h"
 #include "SupportLib/ShapeSmoothUnion.h"
-#include "SupportLib/SolidChecker.h"
+#include "ProceduralLib/SolidMaterials.h"
 #include "SupportLib/Sphere.h"
 #include "SculptPage.h"
 
@@ -59,11 +59,20 @@ void CSculptPage::Init(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColou
 	mpView->AddInputAction(IAF_KeyDown, "Delete", this, &CSculptPage::DeleteAction);
 	mpView->AddInputAction(IAF_KeyDown, "X", this, &CSculptPage::DeleteAction);
 
+	mpEditor = OMalloc<CNodeEditor>(pWindow, psLook->pcTheme);
+	mpNodes = OMalloc<CSculptNodes>(mpEditor);
+	mpNodes->GetChangeEvent()->Add(this, &CSculptPage::MaterialChanged);
+	mpSplit = OMalloc<CSplitContainer>(pWindow, psLook->pcTheme, false);
+	mpSplit->SetAlignment(CSH_Stretch, CSV_Stretch);
+	mpSplit->SetComponents(mpView, mpEditor);
+	mpSplit->SetShare(SCULPT_VIEW_SHARE);
+
 	AddComponent(mpStatus, 0, 0, 1, 1, 1, 0);
 	AddComponent(mpHelp, 0, 1, 1, 1, 1, 0);
-	AddComponent(mpView, 0, 2, 1, 1, 1, 1);
+	AddComponent(mpSplit, 0, 2, 1, 1, 1, 1);
 
 	MakeScene();
+	SetMaterial(MakeSolidMarble(SCULPT_MATERIAL_SEED));
 
 	PostInit();
 }
@@ -80,8 +89,11 @@ void CSculptPage::Class(void)
 	M_Pointer(mpStatus);
 	M_Pointer(mpHelp);
 	M_Pointer(mpView);
-	M_Pointer(mpScene);
+	M_Pointer(mpSplit);
 	M_Pointer(mpEditor);
+	M_Pointer(mpNodes);
+	M_Pointer(mpScene);
+	M_Pointer(mpMesh);
 	M_Pointer(mpShapeEditor);
 	M_Pointer(mpShapeNormals);
 	M_Pointer(mpUnwrap);
@@ -94,8 +106,8 @@ void CSculptPage::Class(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The view may outlive the page (something else may hold it), so it's
-// no longer told of clicks.
+// The view and the nodes may outlive the page (something else may hold
+// them), so it's no longer told of clicks and changes.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::Free(void)
@@ -103,6 +115,10 @@ void CSculptPage::Free(void)
 	if (mpView.IsNotNull())
 	{
 		mpView->GetClickEvent()->Remove(this);
+	}
+	if (mpNodes.IsNotNull())
+	{
+		mpNodes->GetChangeEvent()->Remove(this);
 	}
 	CGridContainer::Free();
 }
@@ -113,8 +129,9 @@ void CSculptPage::Free(void)
 // A camera ten from the origin along z, looking back along -z, so the
 // plane of the screen starts as z = 0, and an editor whose stack meshes
 // the spheres, gives them the shape's normals (so they're smooth),
-// unwraps them and bakes a checker onto them.  The editor's instance
-// goes in with the first sphere: until then there's nothing to draw.
+// unwraps them and bakes the material onto them (SetMaterial gives it
+// one).  The editor's instance goes in with the first sphere: until
+// then there's nothing to draw.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::MakeScene(void)
@@ -130,16 +147,11 @@ void CSculptPage::MakeScene(void)
 	pCamera->mpConnection->msLocalMatrix = pCamera->mpConnection->msWorldMatrix;
 	mpScene->mapCameras.Add(pCamera);
 
-	mpEditor = OMalloc<CMeshEditor>(OMalloc<CMesh>());
-	mpShapeEditor = mpEditor->AddModifier<CMeshShapeEditor>(Ptr<CShape>(), SCULPT_SMALLEST_CELL, SCULPT_LARGEST_CELL);
-	mpShapeNormals = mpEditor->AddModifier<CMeshShapeNormals>(Ptr<CShape>());
-	mpUnwrap = mpEditor->AddModifier<CMeshUnwrap>(SCULPT_TEXELS_PER_UNIT);
-	mpBake = mpEditor->AddModifier<CMeshBake>(OMalloc<CSolidChecker>(SCULPT_CHECKER_SIZE, Set32BitColour((uint8)230, (uint8)220, (uint8)200), Set32BitColour((uint8)60, (uint8)90, (uint8)150)));
-
-	//A checker averages itself over a texel exactly and has no height, so one sample a texel is all of it: the spheres are
-	//baked again at every click.
-	mpBake->miSamples = 1;
-	mpBake->mfRelief = 0.0f;
+	mpMesh = OMalloc<CMeshEditor>(OMalloc<CMesh>());
+	mpShapeEditor = mpMesh->AddModifier<CMeshShapeEditor>(Ptr<CShape>(), SCULPT_SMALLEST_CELL, SCULPT_LARGEST_CELL);
+	mpShapeNormals = mpMesh->AddModifier<CMeshShapeNormals>(Ptr<CShape>());
+	mpUnwrap = mpMesh->AddModifier<CMeshUnwrap>(SCULPT_TEXELS_PER_UNIT);
+	mpBake = mpMesh->AddModifier<CMeshBake>(Ptr<CSolidTexture>());
 
 	mpView->GetDraw()->SetScene(mpScene, "Sculpt: no spheres");
 }
@@ -181,10 +193,10 @@ void CSculptPage::Remesh(void)
 
 	mpShapeEditor->mpShape = mpShape;
 	mpShapeNormals->mpShape = mpShape;
-	mpEditor->mcModifiers.Touch();
+	mpMesh->mcModifiers.Touch();
 	if ((miSpheres > 0) && !mbInScene)
 	{
-		mpScene->mapInstances.Add(SculptInstance(mpEditor));
+		mpScene->mapInstances.Add(SculptInstance(mpMesh));
 		mbInScene = true;
 	}
 	else if ((miSpheres == 0) && mbInScene)
@@ -215,6 +227,41 @@ void CSculptPage::Remesh(void)
 Ptr<CSceneView> CSculptPage::GetView(void)
 {
 	return mpView;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CSculptNodes> CSculptPage::GetNodes(void)
+{
+	return mpNodes;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The material is the one pSurface is the top of: its graph is in the
+// node editor and it's baked onto what's made.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::SetMaterial(Ptr<CSolidTexture> pSurface)
+{
+	mpNodes->SetGraph(OMalloc<CSculptGraph>(pSurface));
+	MaterialChanged();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The graph's surface, which may be another texture now, is baked again.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::MaterialChanged(void)
+{
+	mpBake->mpTexture = mpNodes->GetGraph()->GetSurface();
+	Remesh();
 }
 
 

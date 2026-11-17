@@ -23,6 +23,8 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "StandardLib/ClassDefines.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/TrueTypeFontFactory.h"
+#include "WindowLib/ClearCanvasDraw.h"
+#include "WindowLib/JewelColours.h"
 #include "WindowLib/JewelTheme.h"
 #include "SculptTestWindow.h"
 
@@ -83,17 +85,16 @@ void CSculptTestTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMillieconds,
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The window's pixels are B, G, R, X as Sculpt's are.  It writes no
-// frames.
+// The window's pixels are B, G, R, X and its background the dark
+// theme's panel colour, as Sculpt's are.  It writes no frames.
 //
 //////////////////////////////////////////////////////////////////////////
 Ptr<CWindow> SculptTestWindow(Ptr<CWinRefWindowFactory>& pFactory, int32 iWidth, int32 iHeight, SculptTestTickFunc fTick, void* pvData)
 {
 	Ptr<CWindow>	pWindow;
-	CPointer		pNull;
 
 	pFactory = OMalloc<CWinRefWindowFactory>(&gcMemoryAllocator, iWidth, iHeight, (char*)NULL);
-	pWindow = OMalloc<CWindow>("Sculpt Test", &pFactory, OMalloc<CSculptTestTick>(fTick, pvData), pNull, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+	pWindow = OMalloc<CWindow>("Sculpt Test", &pFactory, OMalloc<CSculptTestTick>(fTick, pvData), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 	ORoot()->Add(pWindow);
 	return pWindow;
 }
