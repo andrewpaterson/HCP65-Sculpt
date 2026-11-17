@@ -118,6 +118,11 @@ The project
    with no screen drawn by the rasteriser, zoomed, put back and clicked.
 2. HCP65-Sculpt's project: the solution, the project, CMake; an app that opens an empty window with a menu (File:
    Exit).
+   Done.  CSculptApp (the window, the menu, the input) and three mains: Windows', X11's and HCP65SculptRef's, which
+   draws the window in memory with no screen (WinRefLib).  With HCP65_SCULPT_SNAPSHOT=file the window is saved as a PNG
+   once drawn, and HCP65_SCULPT_EXIT then closes it: that's how it's looked at as it's built.  The font is read by
+   SupportLib's new ReadTrueTypeFont, which the tester uses too; the IDE, LogiCim and the emulator still have their
+   own copies of it (GenerateFont), left alone.  repos.py has HCP65-Sculpt already.
 3. CIsosurfacePage moved to Sculpt as its page (CSculptPage) with Blender's buttons: spheres dropped and baked with
    the checker, as now.
 4. The isosurface out of WindowInputTester: the page, File's Isosurface, ProceduralLib from its CMake, project and
