@@ -135,6 +135,10 @@ The project
    Done.
 The node editor (WindowLib, with tests at each step)
 5. CNumberField: dragged, typed in, a range's bar, a bad number put back.
+   Done (WindowLib's NumberField.h).  The name is on the left and the number on the right of a bar (the progress
+   bar's draw); a drag is measured from where the button went down, so dragging back puts the number back; a click
+   swaps the bar for a text field (CNumberFieldEdit, as the table's cell editor is made).  A field must be able to
+   take the focus to be dragged: a drag is the focussed component's.
 6. CNodeEditor: nodes as boxes with a header and sockets from the interface; pan, zoom, Home.
 7. Links drawn; selecting, box selecting, moving; making, replacing and removing links by dragging.
    A link's curve is the diff view's (WindowLib's CDiffDividerDraw, MakeShapePath): a cubic Bezier leaving and
