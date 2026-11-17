@@ -1,0 +1,149 @@
+HCP65-Sculpt: the plan
+======================
+A program for looking at and changing procedural materials on a shape: a 3D view over a node editor, as Blender's Shading
+workspace.  It began as "a textures tab" at the end of the texture generators' plan
+(CommonLibraries/Libraries/ProceduralLib/TexturePlan.txt, whose steps 1 to 38 made what it shows) and was moved here
+2026-11-17.  Proposed, nothing built.  What is decided and what is only proposed is said at each point.
+
+
+The user's decisions (2026-11-17)
+  Looking at textures is not a tab in WindowInputTester.  It's its own project, HCP65-Sculpt, in its own repository
+  (Codaphela/HCP65-Sculpt, github andrewpaterson/HCP65-Sculpt; licence files only so far), made with WindowInputTester
+  as its inspiration.
+  The isosurface tab comes out of WindowInputTester.
+  The view both programs draw with goes in a new library in CommonLibraries, SceneViewLib.
+  SceneViewLib holds CSceneCanvasDraw; CSceneView, a canvas with the view's mouse and keys and a hook for a click that
+  wasn't a drag, which the tester's scene tab and Sculpt both use; and the turntable (target, yaw, pitch, distance,
+  framing a scene's bounds, ScreenToPlane) as a plain struct apart from the drawing, so TestSceneViewLib can test it
+  without a window.  Not in it: the VRML view (the tester's alone) and the pages.
+  The material's graph is edited in a node editor, as Blender's.
+  A decision is taken from what Blender does wherever that is unambiguous, and only asked otherwise.  (The user knows
+  3D Studio Max, not Blender; Blender is followed as the more used now.)
+  No C++ is written out to paste in.  A material is a configuration, data that says what to call with what settings,
+  which may be written to disk.  SolidMaterials stays as a help to programmers: functions that make a configuration.
+  The configuration is per node: the graph itself, each node naming its operator and holding its settings (not the
+  name of a Make function with a seed).
+
+What it's for: the materials' colours and sizes are first guesses, and changing one means changing SolidMaterials.cpp,
+building and running the tests for the gallery.  Sculpt is a shape and a material on it, the graph and its numbers
+changed and seen at once.  It's where the isosurface tab's dropping of spheres goes too.
+
+The repository, as HCP65-IDE's is laid out:
+  HCP65-Sculpt/HCP65Sculpt/CMakeLists.txt, HCP65Sculpt.sln      The Linux build and the solution.
+  HCP65-Sculpt/HCP65Sculpt/HCP65Sculpt/                         The sources, HCP65Sculpt.vcxproj (CMake reads it), Resources.
+  HCP65-Sculpt/Libraries, Tests                                 When something wants testing apart from the window.
+  LICENSE, COPYING, .gitattributes, .gitignore                  There (d06e111).
+  repos.py's REPOS gains HCP65-Sculpt.
+
+What comes from WindowInputTester, and how.  Two repositories can't share a source file, so what both want goes to
+CommonLibraries and the rest is written again, smaller:
+  CSceneCanvasDraw                                              To SceneViewLib (above).
+  The app's start (WinMain, the X11 main, the app, its tick, the font)     Written again in Sculpt from the tester's,
+      without the tester's pages: some 500 lines.
+  CIsosurfacePage                                               Moves to Sculpt and becomes its page.
+  The tester keeps its input, editor, scene and VRML tabs, loses File's Isosurface and no longer links ProceduralLib.
+
+Taken from Blender (its Shading workspace and Shader Editor; each is what Blender does, so not asked)
+  The window        The 3D view above, the node editor below, a split between; a menu bar on top.
+  The 3D view       The middle button's drag turns the view, with Shift it pans, the wheel zooms, Home frames
+                    everything.  The left button is for the thing being worked on (here, dropping a sphere), not for
+                    the view.  CSceneView's buttons are therefore told to it: the tester's scene tab keeps its own.
+  The preview       A material is looked at on a simple shape chosen from a few: sphere, box (Blender's cube), and
+                    ours besides: the two met, and what's been sculpted.
+  A node            A box with its name in a header, its output socket on the right at the top, its settings in the
+                    middle and its input sockets down the left.  Sockets are coloured by what they carry.
+  A link            A curve from an output to an input, made by dragging from one socket to the other.  An output
+                    feeds any number of inputs; an input takes one link, and a new one replaces it.  Dragging a link
+                    off an input and letting go over nothing removes it.
+  An input with no link   Uses a value of its own, shown on the node beside the socket as a field (a colour or a
+                    number) that goes away when a link is made.
+  Every setting shown     All of a node's fields are on the node.  (Blender's way of showing a few named settings is
+                    a group of nodes with chosen inputs: later, if wanted.)
+  The output        One node, Material Output, is what the shape is given: the graph's top is whatever is linked to
+                    it.  Nodes not linked through to it are kept and do nothing.
+  Adding            Shift+A, or the Add menu, opens a menu of nodes by kind (Texture, Color, Converter, Vector); the
+                    new node is under the pointer.
+  Selecting, moving, removing   Click selects, Shift+click adds to the selection, a drag on the background selects in
+                    a box, a drag on a node moves the selected ones.  X or Delete removes them, Shift+D copies them.
+  Getting about     The middle button's drag pans the editor, the wheel zooms, Home frames all the nodes.
+  A number          A field dragged sideways to change it, clicked to type in it; one with a range (0 to 1) shows how
+                    far along it is as a bar.
+  A ramp            Blender's Color Ramp: a bar of the ramp's colours with its stops as markers to drag, + and - to add
+                    and remove a stop, and the chosen stop's place and colour under it.
+  A colour          A swatch; clicking it opens a picker with red, green, blue; hue, saturation, value; and hex.
+                    Blender's picker also has a wheel: left until wanted.
+  Undo              Ctrl+Z and Ctrl+Shift+Z, over every change to the graph.
+  Names             A node is titled as Blender's where it has the same thing: Noise Texture, Voronoi Texture
+                    (CSolidCells), Gradient Texture, Brick Texture, Color Ramp, Mix (CSolidMerge and CSolidMask),
+                    Hue/Saturation/Value and Brightness/Contrast (CSolidAdjust).  The classes keep their names.
+  Saving            Everything in one file: the shape, the graph, where its nodes are, the view.  File's New, Open,
+                    Save, Save As.
+
+Where ours differs from Blender, and what's done about it
+  One socket, not several.  Blender's link carries one thing (a colour, a number, a vector) and a texture node has a
+  socket for each.  Ours carries a whole sample (colour, height, shine, gloss, glow), and an operator reads the lot.  So
+  a node has one output and its links are one colour.  Taking one channel out (Blender's Separate) or putting channels
+  from different textures together (Combine) needs two small operators, CSolidChannel and CSolidCombine: step 17.
+  Baked, not drawn live.  Blender works a procedural texture out for every pixel on the graphics card as the view is
+  drawn.  Ours is baked into the mesh's texels on the processor: half a second to a second for the sphere from the
+  texture plan's step 31.  Proposed: on a change bake at a quarter of the density (a sixteenth of the texels, some 50 ms) at once,
+  and at the whole density when nothing has changed for a third of a second.  Measured before it's built (step 12).
+  An operator's input can be nothing.  The operators were written to be given their inputs.  With links that can be
+  taken off, each must do something sensible with none: the input's own value, as Blender's (step 8).
+  Where a node is.  CSolidTexture is SupportLib's and knows nothing of editors.  Sculpt keeps a CSculptNode for each
+  texture (the texture, where its box is), and saves those.
+  Settings come from Class().  Every operator's Class() already names its fields and their kinds (that's how they
+  save), so a node's rows are made from it and a new operator needs nothing written in Sculpt.  Two things Class()
+  doesn't say are told in a small table in Sculpt, by class and field: which integers are enums (and their names), and
+  which numbers have a range.
+
+Where the node editor's code goes.  Proposed: the boxes, sockets, links, selecting, moving, panning and zooming as a
+component in WindowLib (CNodeEditor) that knows nothing of textures: it's asked of through an interface (what nodes,
+what sockets, may this link be made) which Sculpt implements over the solid textures.  Logicim's circuit editor is the
+nearest thing there is (LogicimLib, on SupportLib's CGeometryMap): looked at first, for what can be shared.
+The draggable number (CNumberField), the ramp (CColourRampBar) and the colour picker go in WindowLib too.
+
+Steps
+The project
+1. SceneViewLib in CommonLibraries: CSceneCanvasDraw moved from WindowInputTester (vcxproj, the tester's CMake and
+   solution); the tester builds and runs as it did.  Then the turntable split out as a struct, CSceneView made (its
+   buttons told to it) and the tester's scene tab put on it, and TestSceneViewLib (the turntable, ScreenToPlane, a
+   small scene drawn by the rasteriser; Vulkan needs a device and isn't tested).
+2. HCP65-Sculpt's project: the solution, the project, CMake; an app that opens an empty window with a menu (File:
+   Exit).  repos.py.
+3. CIsosurfacePage moved to Sculpt as its page (CSculptPage) with Blender's buttons: spheres dropped and baked with
+   the checker, as now.
+4. The isosurface out of WindowInputTester: the page, File's Isosurface, ProceduralLib from its CMake, project and
+   solution.
+The node editor (WindowLib, with tests at each step)
+5. CNumberField: dragged, typed in, a range's bar, a bad number put back.
+6. CNodeEditor: nodes as boxes with a header and sockets from the interface; pan, zoom, Home.
+7. Links drawn; selecting, box selecting, moving; making, replacing and removing links by dragging.
+The graph in Sculpt
+8. Operators with an input missing: each input's own value (ProceduralLib; tests).
+9. What a texture works out once from its fields (a placement's axes, a gradient's direction): find each, and give
+   CSolidTexture a Changed() the editor calls, so a field changed from outside is as one set at Init.
+10. CSculptNode and the interface over the solid textures; Material Output; the split window with a made material
+    (marble) shown as nodes, laid out left to right by how far each is from the output.
+11. A node's rows from Class(): numbers, ticks, vectors; a change calls Changed() and bakes.
+12. Measure a bake of each material on each shape; decide the coarse density and the pause from the numbers, and build
+    coarse now, whole when still.
+13. Enums as combos; the table of enums and ranges.
+14. Colours: the swatch and the picker.
+15. The ramp bar (CColourRampBar) on CSolidRamp's node.
+16. Adding (Shift+A and the Add menu), removing, copying.
+17. CSolidChannel and CSolidCombine (Blender's Separate and Combine).
+18. Undo and redo.
+Around it
+19. The shape and the bake's settings (samples, relief, the light) in a panel; what's shown (baked, one channel as
+    greys, the normals).
+20. The materials as a menu: New from Marble, Wood, Stone, Rust, Bricks, Tiles, Weathered, each made by its function
+    and laid out.
+21. File's New, Open, Save, Save As: the one file.
+22. A material as a configuration other programs use: the saved graph without Sculpt's node positions, read by one
+    call that gives its top texture.  SolidMaterials' functions stay, as the code way of making the same thing.
+23. Tune the seven materials in Sculpt; the gallery again.
+24. Clean up; the plan's Done notes.
+
+Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
+dropping spheres.
