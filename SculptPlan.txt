@@ -141,14 +141,20 @@ The node editor (WindowLib, with tests at each step)
    take the focus to be dragged: a drag is the focussed component's.
 6. CNodeEditor: nodes as boxes with a header and sockets from the interface; pan, zoom, Home.
 7. Links drawn; selecting, box selecting, moving; making, replacing and removing links by dragging.
-   A link's curve is the diff view's (WindowLib's CDiffDividerDraw, MakeShapePath): a cubic Bezier leaving and
-   arriving flat, its controls half way across, flattened by CVectorPath's CubicTo and filled by CImageDraw.  The
-   diff fills a band between two such curves; a link is one curve with a width.  So the curve itself comes out of
-   the divider as a function both call (two points and where the controls are), and the link is stroked along it
-   with VectorShapes' AddVectorStroke, a round-ended stroke for each flattened edge, as Gerber's traces are.  Not
-   the divider's band with a link's width between its curves: that is thin where the curve is steep.  The
-   divider is always as wide as its curve; a link from a socket to one to its left needs the controls pushed out
-   past the ends (Blender's does the same), which the function takes as how far the controls are.
+   Done, with step 6 (WindowLib's NodeEditor.h and NodeBox.h).  How it is, where that differs from what was proposed:
+   The editor isn't asked of through an interface for what nodes there are.  It holds its nodes and links itself, as
+   a tree holds its rows: whoever's nodes they are adds a CNodeBox for each (a title, outputs, settings, inputs,
+   added top to bottom) and the links between them, and is asked and told of what the pointer and keys do through a
+   CNodeEditorListener (may this link be made, a link made or removed, nodes moved, delete, duplicate, add).
+   A node is real components: its settings are number fields and whatever else, which take the pointer themselves.
+   An input's value (a number field, say) shows in place of its name until something is linked to it.
+   A link's curve is the diff divider's, now SupportLib's VectorLevelCubic, which both call; a link is that curve
+   stroked as short round-ended pieces (CImageDraw's DrawStroke), its controls pushed out at least 40 pixels so a link
+   going back on itself loops round.  The divider and the editor's and nodes' backs all paint through a new base,
+   CCelCanvasDraw (a cel kept until what's painted changes).
+   Not done: zoom.  A node's settings are real components, and WindowLib has no way to draw a component at
+   another size (question 2).  Pan (the middle button's drag) and Home are done.  Shift can't be pressed in a test
+   (there's no keyboard in one), so adding to the selection with it is untested.
 The graph in Sculpt
 8. Operators with an input missing: each input's own value (ProceduralLib; tests).
 9. What a texture works out once from its fields (a placement's axes, a gradient's direction): find each, and give
@@ -179,6 +185,9 @@ Questions for the user (kept as they come up; work carries on with the answer as
   1. Sculpt can only be tried by hand on a screen.  Tests draw it into images with no screen (WinRefLib), which is how
      it's checked as it's built.  May a Xephyr window be opened on your desktop to drive it with a real pointer, as was
      done for the IDE's docking?  [Assumed: no, until you say; tests and images only.]
+  2. The node editor has no zoom.  Blender's wheel zooms it; here a node's settings are real WindowLib components
+     (number fields and so on), which can only be drawn at their one size.  Zoom would mean fonts at several sizes and
+     every component's measurements scaled: a job of its own in WindowLib.  Wanted?  [Assumed: no; pan and Home only.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.
