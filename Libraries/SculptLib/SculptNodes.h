@@ -84,7 +84,8 @@ protected:
 	CArray<CSculptGraph>			mapHistory;  //The graph after each change, the first as it was given.
 	size							muiHistory;  //Which of them the graph now is.
 	int64							miSettingTime;  //When a setting last changed, 0 if the last change wasn't one.
-	Ptr<CInputAction>				mpUndoAction;  //The editor's Z.
+	Ptr<CInputAction>				mpUndoAction;  //The editor's undo and redo commands.
+	Ptr<CInputAction>				mpRedoAction;
 	CArraySculptAddItem				masAddItems;  //Of every Add menu made.
 	Ptr<CMenuContainer>				mpAddMenu;  //The editor's context menu.
 	SInt32Vec2						msAddPosition;  //Where the next node added goes, in the editor's space.
@@ -114,7 +115,8 @@ public:
 	bool							Redo(void);
 	bool							CanUndo(void);
 	bool							CanRedo(void);
-	void							UndoAction(SComponentInputEvent* psEvent);
+	void							UndoCommand(void);
+	void							RedoCommand(void);
 	size							NumFields(void);
 	Ptr<CSculptField>				GetField(size uiIndex);
 	Ptr<CSculptValue>				FindValue(CSculptNode* pcNode, size uiInput);

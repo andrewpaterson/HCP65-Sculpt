@@ -25,6 +25,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "SupportLib/PNGWriter.h"
 #include "WindowLib/Canvas.h"
 #include "ProceduralLib/SolidChannel.h"
+#include "ProceduralLib/SolidFlat.h"
 #include "ProceduralLib/SolidMaterialFile.h"
 #include "ProceduralLib/SolidMaterials.h"
 #include "SculptLib/SculptMaterials.h"
@@ -430,6 +431,119 @@ void TestSculptPageFile(void)
 
 
 //////////////////////////////////////////////////////////////////////////
+//What the rebake test's tick works on.
+struct STestSculptRebake
+{
+	CSculptPage*	pcPage;  //Held by the test.
+	uint32			auiSeen[4];  //The middle of the view after each change has been drawn.
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The material is made red, then green coarsely, then green finely, then
+// blue, a few ticks apart so each is drawn; the middle of the view is
+// noted before each change.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestSculptPageRebakeTick(Ptr<CWindow> pWindow, int32 iTick, void* pvData)
+{
+	STestSculptRebake*	psTest;
+	Ptr<CSceneView>		pView;
+	SSolidSample		sSample;
+	SInt32Vec2			sSize;
+	int32				iStep;
+
+	psTest = (STestSculptRebake*)pvData;
+	pView = psTest->pcPage->GetView();
+	iStep = iTick / 4;
+	if ((iTick % 4 == 0) && (iStep >= 1) && (iStep <= 4))
+	{
+		sSize = pView->GetActualSize();
+		if (iStep >= 2)
+		{
+			psTest->auiSeen[iStep - 2] = SculptTestViewPixel(pView->GetDraw()->GetImage(), sSize.x / 2, sSize.y / 2);
+		}
+		if (iStep == 1)
+		{
+			sSample.Init(Set32BitColour((uint8)255, (uint8)0, (uint8)0));
+			psTest->pcPage->SetMaterial(OMalloc<CSolidFlat>(&sSample));
+		}
+		else if (iStep == 2)
+		{
+			sSample.Init(Set32BitColour((uint8)0, (uint8)255, (uint8)0));
+			psTest->pcPage->SetMaterial(OMalloc<CSolidFlat>(&sSample));
+		}
+		else if (iStep == 3)
+		{
+			psTest->pcPage->BakeFine();
+		}
+		else
+		{
+			sSample.Init(Set32BitColour((uint8)0, (uint8)0, (uint8)255));
+			psTest->pcPage->SetMaterial(OMalloc<CSolidFlat>(&sSample));
+		}
+	}
+	if (iTick == 20)
+	{
+		sSize = pView->GetActualSize();
+		psTest->auiSeen[3] = SculptTestViewPixel(pView->GetDraw()->GetImage(), sSize.x / 2, sSize.y / 2);
+	}
+	return iTick < 20;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What's drawn is the material as it now is, after each change and after
+// the coarse bake gives way to the whole one: with the rasteriser and,
+// where there's a device for it, with Vulkan.  The view's bytes are B, G,
+// R.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptPageRebaked(bool bVulkan)
+{
+	ObjectsInit();
+	{
+		Ptr<CWinRefWindowFactory>	pFactory;
+		Ptr<CWindow>				pWindow;
+		Ptr<CFontColours>			pFontColours;
+		Ptr<CWindowTheme>			pTheme;
+		Ptr<CSculptPage>			pPage;
+		SDialogLook					sLook;
+		STestSculptRebake			sTest;
+		size						i;
+
+		pWindow = SculptTestWindow(pFactory, 600, 500, TestSculptPageRebakeTick, &sTest);
+		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
+		pPage = OMalloc<CSculptPage>(pWindow, &sLook, pFontColours, bVulkan);
+		sTest.pcPage = &pPage;
+		for (i = 0; i < 4; i++)
+		{
+			sTest.auiSeen[i] = 0;
+		}
+		pWindow->SetContainer(pPage);
+		pWindow->Show();
+
+		//Red; green, coarse and whole; blue.  Each is mostly its own colour, shaded.
+		AssertTrue(((sTest.auiSeen[0] >> 16) & 0xFF) > 2 * (((sTest.auiSeen[0] >> 8) & 0xFF) + (sTest.auiSeen[0] & 0xFF)));
+		AssertTrue(((sTest.auiSeen[1] >> 8) & 0xFF) > 2 * (((sTest.auiSeen[1] >> 16) & 0xFF) + (sTest.auiSeen[1] & 0xFF)));
+		AssertTrue(((sTest.auiSeen[2] >> 8) & 0xFF) > 2 * (((sTest.auiSeen[2] >> 16) & 0xFF) + (sTest.auiSeen[2] & 0xFF)));
+		AssertTrue((sTest.auiSeen[3] & 0xFF) > 2 * (((sTest.auiSeen[3] >> 16) & 0xFF) + ((sTest.auiSeen[3] >> 8) & 0xFF)));
+
+		pPage = NULL;
+		sLook.Kill();
+		pTheme = NULL;
+		pFontColours = NULL;
+		SculptTestWindowDone(pWindow, pFactory);
+	}
+	AssertTrue(ORoot()->RemoveAll());
+	ObjectsFlush();
+	ObjectsKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 //
 //
 //////////////////////////////////////////////////////////////////////////
@@ -439,6 +553,8 @@ void TestSculptPage(void)
 
 	TestSculptPageSpheres();
 	TestSculptPageFile();
+	TestSculptPageRebaked(false);
+	TestSculptPageRebaked(true);
 
 	TestStatistics();
 }

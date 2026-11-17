@@ -48,7 +48,8 @@ void CSculptNodes::Init(Ptr<CNodeEditor> pEditor)
 	mpEditor->SetListener(this);
 	mpAddMenu = MakeAddMenu();
 	mpEditor->SetContextMenu(mpAddMenu);
-	mpUndoAction = mpEditor->AddInputAction(IAF_KeyDown, "Z", this, &CSculptNodes::UndoAction);
+	mpUndoAction = mpEditor->AddInputAction(CIC_Undo, this, &CSculptNodes::UndoCommand);
+	mpRedoAction = mpEditor->AddInputAction(CIC_Redo, this, &CSculptNodes::RedoCommand);
 
 	PostInit();
 }
@@ -69,6 +70,7 @@ void CSculptNodes::Class(void)
 	U_Size(muiHistory);
 	U_Int64(miSettingTime);
 	M_Pointer(mpUndoAction);
+	M_Pointer(mpRedoAction);
 	U_Unknown(CArraySculptAddItem, masAddItems);
 	M_Pointer(mpAddMenu);
 	U_2Int32(msAddPosition);
@@ -89,6 +91,7 @@ void CSculptNodes::Free(void)
 		mpEditor->SetListener(NULL);
 		mpEditor->SetContextMenu(Ptr<CMenuContainer>());
 		mpEditor->RemoveInputAction(mpUndoAction);
+		mpEditor->RemoveInputAction(mpRedoAction);
 	}
 	masAddItems.Kill();
 	mcChanged.Kill();
@@ -440,24 +443,12 @@ bool CSculptNodes::CanRedo(void) { return muiHistory + 1 < mapHistory.NumElement
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Control+Z undoes and Control+Shift+Z redoes; Z alone is someone else's.
+// The window's undo and redo commands (Control+Z and Control+Shift+Z: a
+// chord's key isn't given as a key, only as its command).
 //
 //////////////////////////////////////////////////////////////////////////
-void CSculptNodes::UndoAction(SComponentInputEvent* psEvent)
-{
-	if (!psEvent->bControl)
-	{
-		psEvent->bPass = true;
-	}
-	else if (psEvent->bShift)
-	{
-		Redo();
-	}
-	else
-	{
-		Undo();
-	}
-}
+void CSculptNodes::UndoCommand(void) { Undo(); }
+void CSculptNodes::RedoCommand(void) { Redo(); }
 
 
 //////////////////////////////////////////////////////////////////////////

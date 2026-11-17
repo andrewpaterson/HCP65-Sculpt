@@ -793,7 +793,6 @@ void TestSculptNodesUndo(void)
 		Ptr<CNumberField>			pNumber;
 		SDialogLook					sLook;
 		STestSculptNodesChanges		sChanges;
-		SComponentInputEvent		sEvent;
 		SInt32Vec2					sFrom;
 
 		pWindow = SculptTestWindow(pFactory, 1000, 600, TestSculptNodesTick, NULL);
@@ -835,16 +834,15 @@ void TestSculptNodesUndo(void)
 		pField = TestSculptNodesField(pNodes, "mfAmount", 0);
 		AssertDouble(0.9, pField->Get(), 6);
 
-		//Redone, by the key.
-		memset(&sEvent, 0, sizeof(sEvent));
-		sEvent.bControl = true;
-		sEvent.bShift = true;
-		pNodes->UndoAction(&sEvent);
+		//Redone and undone by the window's commands, which Control+Shift+Z and Control+Z give, and redone again.
+		pWindow->GetFocus()->SetFocus(pEditor);
+		pWindow->InputCommand(CIC_Redo, true);
 		AssertFloat(0.25f, Ptr<CSolidWarp>(pNodes->GetGraph()->GetNode(2)->mpTexture)->mfAmount, 6);
 		AssertFalse(pNodes->CanRedo());
-		sEvent.bControl = false;
-		pNodes->UndoAction(&sEvent);  //Z alone is passed on.
-		AssertTrue(sEvent.bPass);
+		pWindow->InputCommand(CIC_Undo, true);
+		AssertFloat(0.9f, Ptr<CSolidWarp>(pNodes->GetGraph()->GetNode(2)->mpTexture)->mfAmount, 6);
+		AssertTrue(pNodes->CanRedo());
+		pWindow->InputCommand(CIC_Redo, true);
 		AssertFloat(0.25f, Ptr<CSolidWarp>(pNodes->GetGraph()->GetNode(2)->mpTexture)->mfAmount, 6);
 
 		//A link taken off and a node added are a step each.

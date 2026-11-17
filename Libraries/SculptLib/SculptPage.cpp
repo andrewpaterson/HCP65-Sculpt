@@ -70,6 +70,8 @@ void CSculptPage::Init(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColou
 	mpEditor = OMalloc<CNodeEditor>(pWindow, psLook->pcTheme);
 	mpNodes = OMalloc<CSculptNodes>(mpEditor);
 	mpNodes->GetChangeEvent()->Add(this, &CSculptPage::MaterialChanged);
+	AddInputAction(CIC_Undo, &mpNodes, &CSculptNodes::UndoCommand);  //Wherever in the page the focus is; the editor has its own.
+	AddInputAction(CIC_Redo, &mpNodes, &CSculptNodes::RedoCommand);
 	mpSplit = OMalloc<CSplitContainer>(pWindow, psLook->pcTheme, false);
 	mpSplit->SetAlignment(CSH_Stretch, CSV_Stretch);
 	mpSplit->SetComponents(mpView, mpEditor);
