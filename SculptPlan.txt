@@ -125,6 +125,11 @@ The project
    own copies of it (GenerateFont), left alone.  repos.py has HCP65-Sculpt already.
 3. CIsosurfacePage moved to Sculpt as its page (CSculptPage) with Blender's buttons: spheres dropped and baked with
    the checker, as now.
+   Done.  The page is SculptLib's (HCP65-Sculpt/Libraries/SculptLib), not the app's, so it's tested without the app:
+   TestSculptLib (HCP65-Sculpt/Tests) shows it in a window with no screen, drops a sphere, clicks and clears.  Its
+   SculptTestWindow makes that window with Sculpt's font and theme for the tests to come.  The view's status no
+   longer names keys (they were the tester's scene tab's, which says them itself now), and says playing or paused
+   only of a scene with animations.
 4. The isosurface out of WindowInputTester: the page, File's Isosurface, ProceduralLib from its CMake, project and
    solution.
 The node editor (WindowLib, with tests at each step)

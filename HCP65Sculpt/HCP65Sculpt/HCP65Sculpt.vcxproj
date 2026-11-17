@@ -69,10 +69,10 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\Libraries\;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
@@ -271,6 +271,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\SceneViewLib\SceneViewLib.vcxproj">
       <Project>{2f25a079-28eb-45d5-8fa2-d9b37574cf14}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\SculptLib\SculptLib.vcxproj">
+      <Project>{e262449f-ea8d-4bab-b5db-331976595327}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\SupportLib\SupportLib.vcxproj">
       <Project>{221022f1-b103-456a-8f55-721f33f2e26d}</Project>

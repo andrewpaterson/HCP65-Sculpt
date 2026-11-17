@@ -23,6 +23,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VulkanLib", "..\..\..\Commo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SceneViewLib", "..\..\..\CommonLibraries\Libraries\SceneViewLib\SceneViewLib.vcxproj", "{2F25A079-28EB-45D5-8FA2-D9B37574CF14}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SculptLib", "..\Libraries\SculptLib\SculptLib.vcxproj", "{E262449F-EA8D-4BAB-B5DB-331976595327}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SupportLib", "..\..\..\CommonLibraries\Libraries\SupportLib\SupportLib.vcxproj", "{221022F1-B103-456A-8F55-721F33F2E26D}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinInputLib", "..\..\..\CommonLibraries\Libraries\WinInputLib\WinInputLib.vcxproj", "{EFE4D8A4-D7F4-4BA2-9F43-0E3BC02268C2}"
@@ -112,13 +114,21 @@ Global
 		{6F1C2E9A-4B7D-4C3E-9A51-0D8E7B2F4C16}.Release|x64.ActiveCfg = Release|x64
 		{6F1C2E9A-4B7D-4C3E-9A51-0D8E7B2F4C16}.Release|x64.Build.0 = Release|x64
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Debug|Win32.ActiveCfg = Debug|Win32
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Debug|Win32.Build.0 = Debug|Win32
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Debug|Win32.Build.0 = Debug|Win32
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Debug|x64.ActiveCfg = Debug|x64
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Debug|x64.ActiveCfg = Debug|x64
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Debug|x64.Build.0 = Debug|x64
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Debug|x64.Build.0 = Debug|x64
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Release|Win32.ActiveCfg = Release|Win32
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Release|Win32.ActiveCfg = Release|Win32
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Release|Win32.Build.0 = Release|Win32
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Release|Win32.Build.0 = Release|Win32
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Release|x64.ActiveCfg = Release|x64
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Release|x64.ActiveCfg = Release|x64
 		{2F25A079-28EB-45D5-8FA2-D9B37574CF14}.Release|x64.Build.0 = Release|x64
+		{E262449F-EA8D-4BAB-B5DB-331976595327}.Release|x64.Build.0 = Release|x64
 		{221022F1-B103-456A-8F55-721F33F2E26D}.Debug|Win32.ActiveCfg = Debug|Win32
 		{221022F1-B103-456A-8F55-721F33F2E26D}.Debug|Win32.Build.0 = Debug|Win32
 		{221022F1-B103-456A-8F55-721F33F2E26D}.Debug|x64.ActiveCfg = Debug|x64

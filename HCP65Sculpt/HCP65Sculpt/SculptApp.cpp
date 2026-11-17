@@ -91,6 +91,8 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 		MakeMenus();
 		mpMain = OMalloc<CGridContainer>(mpWindow);
 		mpMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
+		mpPage = OMalloc<CSculptPage>(mpWindow, &msDialogLook, mpFontColours);
+		mpMain->AddComponent(mpPage, 0, 1, 1, 1, 1, 1);
 		mpWindow->SetContainer(mpMain);
 
 		mpInput = OMalloc<CInput>((CNativeInput*)NULL);
@@ -104,6 +106,7 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 		mpWindow->SetComponentInput(&mcComponentInput);
 
 		mpWindow->SetWindowSize(1280, 800);
+		mpPage->GetView()->FocusView();
 	}
 	return mbValid;
 }
@@ -139,6 +142,7 @@ void CSculptApp::Class(void)
 	M_Pointer(mpMain);
 	M_Pointer(mpMenuBar);
 	M_Pointer(mpExit);
+	M_Pointer(mpPage);
 	U_Data(SDialogLook, msDialogLook);
 	M_Pointer(mpInput);
 	M_Pointer(mpInputSource);

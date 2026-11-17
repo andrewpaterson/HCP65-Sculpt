@@ -1,5 +1,5 @@
 # Linux build of HCP65 Sculpt (BaseLib + StandardLib + SupportLib + RasterLib + RenderLib + RasterRenderLib + VulkanLib +
-# ProceduralLib + InputLib + WindowLib + SceneViewLib + X11Lib + WinRefLib + Sculpt's sources).
+# ProceduralLib + InputLib + WindowLib + SceneViewLib + X11Lib + WinRefLib + SculptLib + Sculpt's sources).
 # VulkanLib needs Vulkan's headers to build (the SDK, or libvulkan-dev); it loads libvulkan.so.1 when a scene is shown.
 #
 # HCP65Sculpt shows its window on the X display; HCP65SculptRef draws it on WinRefLib's reference screen, in memory with
@@ -49,6 +49,7 @@ set(WINDOWLIB_DIR "${COMMON_DIR}/WindowLib")
 set(X11LIB_DIR "${COMMON_DIR}/X11Lib")
 set(SCENEVIEWLIB_DIR "${COMMON_DIR}/SceneViewLib")
 set(WINREFLIB_DIR "${COMMON_DIR}/WinRefLib")
+set(SCULPTLIB_DIR "${SCULPT_ROOT}/Libraries/SculptLib")
 set(SCULPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/HCP65Sculpt")
 
 
@@ -107,6 +108,7 @@ vcxproj_sources(WINDOWLIB_SOURCES "${WINDOWLIB_DIR}/WindowLib.vcxproj")
 vcxproj_sources(X11LIB_SOURCES "${X11LIB_DIR}/X11Lib.vcxproj")
 vcxproj_sources(SCENEVIEWLIB_SOURCES "${SCENEVIEWLIB_DIR}/SceneViewLib.vcxproj")
 vcxproj_sources(WINREFLIB_SOURCES "${WINREFLIB_DIR}/WinRefLib.vcxproj")
+vcxproj_sources(SCULPTLIB_SOURCES "${SCULPTLIB_DIR}/SculptLib.vcxproj")
 vcxproj_sources(SCULPT_SOURCES "${SCULPT_DIR}/HCP65Sculpt.vcxproj" EXCLUDE "HCP65Sculpt.cpp")
 
 
@@ -114,7 +116,7 @@ vcxproj_sources(SCULPT_SOURCES "${SCULPT_DIR}/HCP65Sculpt.vcxproj" EXCLUDE "HCP6
 # BREAK_ON_WARNING: on Linux BREAK() raises SIGTRAP, which kills the test run
 # when no debugger is attached.
 add_library(baselib_options INTERFACE)
-target_include_directories(baselib_options INTERFACE "${COMMON_DIR}")
+target_include_directories(baselib_options INTERFACE "${COMMON_DIR}" "${SCULPT_ROOT}/Libraries")
 target_compile_definitions(baselib_options INTERFACE
 	LINUX_GNU
 	$<$<CONFIG:Debug>:_DEBUG>
@@ -190,10 +192,13 @@ target_link_libraries(SceneViewLib PUBLIC WindowLib InputLib VulkanLib RasterRen
 add_library(WinRefLib STATIC ${WINREFLIB_SOURCES})
 target_link_libraries(WinRefLib PUBLIC WindowLib InputLib SupportLib StandardLib BaseLib)
 
+add_library(SculptLib STATIC ${SCULPTLIB_SOURCES})
+target_link_libraries(SculptLib PUBLIC SceneViewLib WindowLib InputLib VulkanLib ProceduralLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib BaseLib)
+
 # Everything but a main.
 add_library(HCP65SculptLib STATIC ${SCULPT_SOURCES})
 target_include_directories(HCP65SculptLib PUBLIC "${SCULPT_DIR}")
-target_link_libraries(HCP65SculptLib PUBLIC SceneViewLib WindowLib InputLib VulkanLib ProceduralLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib BaseLib)
+target_link_libraries(HCP65SculptLib PUBLIC SculptLib SceneViewLib WindowLib InputLib VulkanLib ProceduralLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib BaseLib)
 
 add_executable(HCP65Sculpt "${SCULPT_DIR}/HCP65SculptLinux.cpp")
 target_link_libraries(HCP65Sculpt PRIVATE HCP65SculptLib X11Lib)

@@ -33,12 +33,13 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 #include "WindowLib/Window.h"
 #include "WindowLib/WindowInputSource.h"
 #include "WindowLib/WindowTheme.h"
+#include "SculptLib/SculptPage.h"
 
 
 #define SCULPT_SNAPSHOT_TICKS	10	//Ticks before HCP65_SCULPT_SNAPSHOT's image is saved, so everything has been laid out and drawn.
 
 
-//HCP65 Sculpt: its window (a menu bar over its page), the menu's items and the input that drives it.  main makes it, adds
+//HCP65 Sculpt: its window (a menu bar over its page, SculptLib's CSculptPage), the menu's items and the input that drives it.  main makes it, adds
 //it to the root, runs it and removes it from the root.
 //
 //What a menu item asks for is done from the window's tick (Tick), not from the click, as a dialog reads the input itself.
@@ -56,6 +57,7 @@ protected:
 	Ptr<CGridContainer>			mpMain;  //The menu bar over the page.
 	Ptr<CMenuBar>				mpMenuBar;
 	Ptr<CMenuItem>				mpExit;
+	Ptr<CSculptPage>			mpPage;
 	SDialogLook					msDialogLook;
 	Ptr<CInput>					mpInput;
 	Ptr<CWindowInputSource>		mpInputSource;
