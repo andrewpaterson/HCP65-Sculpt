@@ -284,14 +284,14 @@ Questions for the user (kept as they come up; work carries on with the answer as
      levels rounding down; ours were rounded up: CTextureLevels' bRoundDown).]
   2. The node editor has no zoom.  Blender's wheel zooms it; here a node's settings are real WindowLib components
      (number fields and so on), which can only be drawn at their one size.  Zoom would mean fonts at several sizes and
-     every component's measurements scaled: a job of its own in WindowLib.  Wanted?  [Assumed: no; pan and Home only.
-     Explained further 2026-11-17; not yet answered.]
+     every component's measurements scaled: a job of its own in WindowLib.  Wanted?  [Answered 2026-11-17: no zoom for now; pan
+     and Home only.]
   3. To know, more than to answer: StandardLib's U_Enum now saves and loads an enum field at its real size (4 bytes),
      where it was 16 and overran the field (step 13).  An object with an enum saved before this, in a file or a
      Codabase, no longer loads: there are 71 U_Enums in CommonLibraries, and none of the tests' saved files minded
      (StandardLib, SupportLib, WindowLib, ProceduralLib and Sculpt's tests pass).  If you have such saved objects
-     elsewhere that matter, say, and old files can be read by the old size.  [Assumed: none that matter.  Explained
-     further 2026-11-17; not yet answered.]
+     elsewhere that matter, say, and old files can be read by the old size.  [Answered 2026-11-17: probably none; assume
+     none for now, so no reader for the old size.]
   4. The materials haven't been tuned (step 23): their colours and sizes are still my first guesses.  Sculpt is there
      to tune them in, on a screen, by your eye: change a material, Export Material, and say which you'd like made the
      new starting ones in SolidMaterials.cpp, or tune and send the files.  [Answered 2026-11-17: you'll try.]
