@@ -21,6 +21,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "BaseLib/NativeThread.h"
 #include "BaseLib/Timer.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/MeshBake.h"
@@ -36,6 +37,39 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #define TEST_SCULPT_BAKE_MATERIALS	6
+
+
+//A texture that takes a Ptr to its input at every sample, and so counts on it there: what a texture mustn't do under
+//threads that aren't registered with the object system (SupportLib's MeshBake.h), and may under threads that are.
+class CTestSculptHolder : public CSolidTexture
+{
+CONSTRUCTABLE(CTestSculptHolder);
+DESTRUCTABLE(CTestSculptHolder);
+public:
+	Ptr<CSolidTexture>	mpInput;
+
+	void Init(Ptr<CSolidTexture> pInput)
+	{
+		PreInit();
+		CSolidTexture::Init();
+		mpInput = pInput;
+		PostInit();
+	}
+
+	void Class(void) override
+	{
+		CSolidTexture::Class();
+		M_Pointer(mpInput);
+	}
+
+protected:
+	void TextureSample(SFloat32Vec3* psPosition, SFloat32Vec3* psNormal, float32 fWidth, SSolidSample* psSample) override
+	{
+		Ptr<CSolidTexture>	pHeld = mpInput;
+
+		pHeld->Sample(psPosition, psNormal, fWidth, psSample);
+	}
+};
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -154,6 +188,60 @@ void TestSculptBakeJobs(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The marble behind a texture that takes a Ptr to it at every sample, held by the root as a material in use is.
+//
+//////////////////////////////////////////////////////////////////////////
+static Ptr<CSolidTexture> TestSculptBakeHeldMarble(void)
+{
+	Ptr<CTestSculptHolder>	pHolder;
+
+	pHolder = OMalloc<CTestSculptHolder>(MakeSolidMarble(1));
+	ORoot()->Add(pHolder);
+	return pHolder;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A pool whose threads are registered with the object system, its locking on (level 2 of CommonLibraries'
+// StandardLib/ThreadSafetyPlan.txt), bakes a texture that takes a Ptr at every sample, on every thread at once,
+// to the one object: the image is the one baked alone, and no thread is told it did wrong.  Each Ptr is taken
+// without the object system's lock, as the object is held by the root.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptBakeRegisteredJobs(void)
+{
+	CWorkerThreadJobs	cJobs;
+	Ptr<CSolidTexture>	pMaterial;
+	Ptr<CImage>			pAlone;
+	Ptr<CImage>			pShared;
+	int64				iWhole;
+	int64				iBake;
+	size				uiThreadErrors;
+
+	uiThreadErrors = ObjectsNumThreadErrors();
+	pMaterial = TestSculptBakeHeldMarble();
+	pAlone = TestSculptBakeTimes(pMaterial, 16.0f, 2, NULL, &iWhole, &iBake);
+
+	AssertTrue(ObjectsLocking(true));
+	cJobs.Init(4, ObjectsThreadInit, ObjectsThreadKill);
+	pShared = TestSculptBakeTimes(pMaterial, 16.0f, 2, &cJobs, &iWhole, &iBake);
+	cJobs.Kill();
+	AssertSize(0, ObjectsNumThreads());
+	AssertTrue(ObjectsLocking(false));
+
+	AssertTrue(TestSculptBakeSameImage(pAlone, pShared));
+	AssertSize(uiThreadErrors, ObjectsNumThreadErrors());
+	AssertSize(1, pMaterial.NumStackFroms());
+	pAlone = NULL;
+	pShared = NULL;
+	pMaterial = NULL;
+	ORoot()->RemoveAll();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // SCULPT_BAKE_REPORT prints what a sphere takes to bake with each
 // material at the densities a change could be shown at, on this thread
 // and then on a thread for each the hardware runs at once.  Without it,
@@ -204,6 +292,29 @@ void TestSculptBakeReport(void)
 		}
 	}
 	cJobs.Kill();
+
+	//And the marble behind a texture that takes a Ptr at every sample: alone, then on threads registered with the
+	//object system with its locking on.
+	pMaterial = TestSculptBakeHeldMarble();
+	for (k = 0; k < 2; k++)
+	{
+		if (k == 1)
+		{
+			ObjectsLocking(true);
+			cJobs.Init(NumHardwareThreads(), ObjectsThreadInit, ObjectsThreadKill);
+		}
+		printf("%-8s", (k == 0) ? "Ptr, 1" : "Ptr, all");
+		for (j = 0; j < 4; j++)
+		{
+			TestSculptBakeTimes(pMaterial, afDensities[j], MESH_BAKE_SAMPLES, (k == 0) ? NULL : &cJobs, &iWhole, &iBake);
+			printf("  %14d %5d", (int)iWhole, (int)iBake);
+		}
+		printf("\n");
+	}
+	cJobs.Kill();
+	ObjectsLocking(false);
+	pMaterial = NULL;
+	ORoot()->RemoveAll();
 	fflush(stdout);
 }
 
@@ -219,6 +330,7 @@ void TestSculptBake(void)
 
 	TestSculptBakeReport();
 	TestSculptBakeJobs();
+	TestSculptBakeRegisteredJobs();
 
 	ObjectsDiscard();
 	ObjectsKill(false);
