@@ -24,6 +24,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "StandardLib/UnmanagedField.h"
 #include "SupportLib/SolidTexture.h"
 #include "WindowLib/CheckBox.h"
+#include "WindowLib/ComboBox.h"
 #include "WindowLib/NumberField.h"
 
 
@@ -43,7 +44,7 @@ enum ESculptFieldKind
 
 
 //One number of a solid texture, as a node shows it: a field its Class() names (or one of a vector's three floats), and
-//the component it's shown and changed with.  The component's change is the field's: the number is put in the texture,
+//the component it's shown and changed with: a number field, a tick, or for an enum a combo box of its names.  The component's change is the field's: the number is put in the texture,
 //the texture is told its fields changed (CSolidTexture::Changed) and the nodes that the material has.
 //
 //The nodes hold these while their boxes hold the components.
@@ -68,8 +69,10 @@ public:
 
 	Ptr<CNumberField>		MakeNumber(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme, const char* szLabel);
 	Ptr<CCheckBox>			MakeTick(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme, const char* szLabel);
+	Ptr<CComboBox>			MakeChoice(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme);
 	void					NumberChanged(CNumberField* pcNumber);
 	void					Ticked(CCheckBox* pcTick);
+	void					Chosen(CComboBox* pcChoice);
 
 	static ESculptFieldKind	Kind(CUnmanagedField* pcField);
 };

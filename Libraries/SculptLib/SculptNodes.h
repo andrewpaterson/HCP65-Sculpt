@@ -36,7 +36,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //moved, are the graph's.  Its change event is called whenever the material would be baked differently.
 //
 //Under a box's output are its texture's settings, a row for each field its Class() names that a node can show
-//(CSculptField): a number field for a number, three for a vector, a tick for a bool.  A setting changed is put in the
+//(CSculptField): a number field for a number, three for a vector, a tick for a bool, a combo box for an enum.  A setting changed is put in the
 //texture and the change event called.
 //
 //A box's data is its node (the graph holds it).  Nodes that haven't been placed are arranged in columns by how far each

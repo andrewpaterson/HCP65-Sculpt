@@ -192,6 +192,11 @@ The graph in Sculpt
     to 64 ms, which follows a drag.  So a change is baked at once at a quarter of the density (32 texels a unit) and
     at the whole (128) a third of a second after the last change (CSculptPage::Rebake, the window's PostAfter).
 13. Enums as combos; the table of enums and ranges.
+    Done: an enum is a combo box of its names from SolidShow's table, which already had the ranges.  It found a bug
+    in StandardLib, fixed there (question 3): an enum field was registered 16 bytes long, the size of an enum written
+    with its type, though it's 4 in the object, so saving an object read 12 bytes past the field and loading one wrote
+    12 bytes past it, off the end of the object when the enum was its last field (a CSolidMerge).  U_Enum passes the
+    enum's size now.
 14. Colours: the swatch and the picker.
 15. The ramp bar (CColourRampBar) on CSolidRamp's node.
 16. Adding (Shift+A and the Add menu), removing, copying.
@@ -215,6 +220,11 @@ Questions for the user (kept as they come up; work carries on with the answer as
   2. The node editor has no zoom.  Blender's wheel zooms it; here a node's settings are real WindowLib components
      (number fields and so on), which can only be drawn at their one size.  Zoom would mean fonts at several sizes and
      every component's measurements scaled: a job of its own in WindowLib.  Wanted?  [Assumed: no; pan and Home only.]
+  3. To know, more than to answer: StandardLib's U_Enum now saves and loads an enum field at its real size (4 bytes),
+     where it was 16 and overran the field (step 13).  An object with an enum saved before this, in a file or a
+     Codabase, no longer loads: there are 71 U_Enums in CommonLibraries, and none of the tests' saved files minded
+     (StandardLib, SupportLib, WindowLib, ProceduralLib and Sculpt's tests pass).  If you have such saved objects
+     elsewhere that matter, say, and old files can be read by the old size.  [Assumed: none that matter.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.

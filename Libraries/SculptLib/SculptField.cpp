@@ -222,6 +222,50 @@ Ptr<CCheckBox> CSculptField::MakeTick(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pT
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A combo box of the enum's names (SolidShow.h), in the enum's order,
+// the field's chosen: NULL if nothing says what they are.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CComboBox> CSculptField::MakeChoice(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme)
+{
+	Ptr<CComboBox>		pChoice;
+	SSolidFieldShow*	psShow;
+	CChars				szName;
+	const char*			szNames;
+
+	psShow = FindSolidFieldShow(&mpTexture, mpcField->GetName());
+	if ((psShow == NULL) || (psShow->eShow != SFS_Enum))
+	{
+		return NULL;
+	}
+
+	pChoice = OMalloc<CComboBox>(pWindow, pTheme);
+	szName.Init();
+	for (szNames = psShow->szNames; ; szNames++)
+	{
+		if ((*szNames == '|') || (*szNames == '\0'))
+		{
+			pChoice->AddItem(szName.Text());
+			szName.Clear();
+			if (*szNames == '\0')
+			{
+				break;
+			}
+		}
+		else
+		{
+			szName.Append(*szNames);
+		}
+	}
+	szName.Kill();
+	pChoice->Select((int32)Get());
+	pChoice->GetSelectionEvent()->Add(this, &CSculptField::Chosen);
+	return pChoice;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptField::NumberChanged(CNumberField* pcNumber)
@@ -238,6 +282,17 @@ void CSculptField::NumberChanged(CNumberField* pcNumber)
 void CSculptField::Ticked(CCheckBox* pcTick)
 {
 	Set(pcTick->IsTicked() ? 1.0 : 0.0);
+	mpcNodes->FieldChanged();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptField::Chosen(CComboBox* pcChoice)
+{
+	Set((float64)pcChoice->GetSelected());
 	mpcNodes->FieldChanged();
 }
 

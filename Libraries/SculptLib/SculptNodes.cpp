@@ -153,7 +153,8 @@ Ptr<CNodeBox> CSculptNodes::MakeBox(Ptr<CSculptNode> pNode)
 //
 // A row in pBox for each of pTexture's fields that a node can show and
 // that isn't hidden, in the order its Class() names them: a number, a
-// tick, or a vector's three numbers under its label.  Enums come later.
+// tick, a vector's three numbers under its label, or an enum's names to
+// choose from (an enum with no names said of it isn't shown).
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptNodes::MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture)
@@ -161,6 +162,8 @@ void CSculptNodes::MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture)
 	static const char*	aszAxes[3] = { "X", "Y", "Z" };
 	Ptr<CWindow>		pWindow;
 	Ptr<CWindowTheme>	pTheme;
+	Ptr<CSculptField>	pField;
+	Ptr<CComboBox>		pChoice;
 	CArrayVoidPtr*		papcFields;
 	CUnmanagedField*	pcField;
 	SSolidFieldShow*	psShow;
@@ -192,6 +195,20 @@ void CSculptNodes::MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture)
 		else if (eKind == SFK_Tick)
 		{
 			pBox->AddRow(AddField(pTexture, pcField, 0)->MakeTick(pWindow, pTheme, szLabel.Text()));
+		}
+		else if (eKind == SFK_Enum)
+		{
+			pField = AddField(pTexture, pcField, 0);
+			pChoice = pField->MakeChoice(pWindow, pTheme);
+			if (pChoice.IsNotNull())
+			{
+				pChoice->SetAlignment(CSH_Stretch, CSV_Center);
+				pBox->AddRow(pChoice);
+			}
+			else
+			{
+				mapFields.Remove(pField);
+			}
 		}
 		else if (eKind == SFK_Vector)
 		{

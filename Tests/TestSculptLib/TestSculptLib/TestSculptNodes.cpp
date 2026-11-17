@@ -236,8 +236,8 @@ static Ptr<CSculptField> TestSculptNodesField(Ptr<CSculptNodes> pNodes, const ch
 //////////////////////////////////////////////////////////////////////////
 //
 // A node's settings are its texture's fields: a float, an integer, a
-// size, a bool and a vector's three floats each read and set as what it
-// is; hidden fields and enums aren't there.  A setting changed by its
+// size, a bool, an enum and a vector's three floats each read and set
+// as what it is; hidden fields aren't there.  A setting changed by its
 // component is put in the texture, the texture is told (a slope's
 // direction is a unit again) and the change event called.
 //
@@ -259,6 +259,8 @@ void TestSculptNodesSettings(void)
 		Ptr<CSculptField>			pField;
 		Ptr<CNumberField>			pNumber;
 		Ptr<CCheckBox>				pTick;
+		Ptr<CComboBox>				pChoice;
+		Ptr<CSolidMerge>			pMerge;
 		SDialogLook					sLook;
 		STestSculptNodesChanges		sChanges;
 		SFloat32Vec3				sSize;
@@ -276,17 +278,37 @@ void TestSculptNodesSettings(void)
 		pBricks = OMalloc<CSolidBricks>(SB_Brick, &sSize, 0.1f, 0.5f, 9);
 		pNoise = OMalloc<CSolidNoise>(FN_Turbulence, 6, 11);
 		pSlope = OMalloc<CSolidSlope>();
-		pAdjust = OMalloc<CSolidAdjust>(OMalloc<CSolidMerge>(SM_Add, pBricks, OMalloc<CSolidWarp>(pSlope, pNoise, 0.25f)));
+		pMerge = OMalloc<CSolidMerge>(SM_Add, pBricks, OMalloc<CSolidWarp>(pSlope, pNoise, 0.25f));
+		pAdjust = OMalloc<CSolidAdjust>(pMerge);
 		pNodes->SetGraph(OMalloc<CSculptGraph>(pAdjust));
 		pWindow->Layout();
 		AssertSize(7, pEditor->NumNodes());
 
-		//Every texture has a scale; the placement's origin and axes, and the enums, aren't settings.
+		//Every texture has a scale; the placement's origin and axes aren't settings.
 		AssertTrue(TestSculptNodesField(pNodes, "mfScale", 5).IsNotNull());
 		AssertTrue(TestSculptNodesField(pNodes, "mfScale", 6).IsNull());
 		AssertTrue(TestSculptNodesField(pNodes, "msOrigin", 0).IsNull());
 		AssertTrue(TestSculptNodesField(pNodes, "masAxes", 0).IsNull());
-		AssertTrue(TestSculptNodesField(pNodes, "meKind", 0).IsNull());
+
+		//An enum is chosen from its names: each class's kind has its own.
+		pField = TestSculptNodesField(pNodes, "meKind", 0);
+		pChoice = pField->MakeChoice(pWindow, pTheme);
+		AssertSize(2, pChoice->NumItems());
+		AssertString("Brick", pChoice->GetSelectedText());
+		pField = TestSculptNodesField(pNodes, "meKind", 1);
+		pChoice = pField->MakeChoice(pWindow, pTheme);
+		AssertSize(3, pChoice->NumItems());
+		AssertString("Turbulence", pChoice->GetSelectedText());
+		pChoice->Select(2);
+		pField->Chosen(&pChoice);
+		AssertInt(FN_Ridged, pNoise->meKind);
+		AssertSize(6, pNoise->muiOctaves);  //Its neighbour is as it was.
+		AssertInt(1, sChanges.iChanges);
+		sChanges.iChanges = 0;
+		pField = TestSculptNodesField(pNodes, "meMerge", 0);
+		AssertDouble((float64)SM_Add, pField->Get(), 6);
+		pField->Set((float64)SM_Difference);
+		AssertInt(SM_Difference, pMerge->meMerge);
 
 		//A float.
 		pField = TestSculptNodesField(pNodes, "mfMortar", 0);
@@ -358,6 +380,8 @@ void TestSculptNodesSettings(void)
 		AssertSize(4, pNodes->NumFields());  //A scale and a direction.
 
 		pNodes->GetChangeEvent()->Remove(&sChanges);
+		pChoice = NULL;
+		pMerge = NULL;
 		pTick = NULL;
 		pNumber = NULL;
 		pField = NULL;
