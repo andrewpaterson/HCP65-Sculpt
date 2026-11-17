@@ -55,6 +55,9 @@ public:
 //made, as are inputs that point at nothing, whose value is the opaque black an operator makes of nothing.
 //
 //A node can't be linked to an input of itself, nor of anything it's made from, however far down.
+//
+//Copy is another graph of other textures that are as this one's and linked as they are, its nodes in the same order and
+//places: what undo keeps.  A texture of a class that can't be made new (SolidShow.h) is shared, not copied.
 class CSculptGraph : public CObject
 {
 CONSTRUCTABLE(CSculptGraph);
@@ -86,6 +89,7 @@ public:
 	Ptr<CSculptNode>	AddNode(Ptr<CSolidTexture> pTexture);
 	bool				RemoveNode(Ptr<CSculptNode> pNode);
 	size				GetDepth(CSculptNode* pcNode);
+	Ptr<CSculptGraph>	Copy(void);
 
 	static bool			IsValue(Ptr<CSolidTexture> pTexture);
 
@@ -94,6 +98,7 @@ protected:
 	void				AddNodesOf(Ptr<CSolidTexture> pTexture);
 	void				GiveInputsValues(CSculptNode* pcNode);
 	bool				DependsOn(CSolidTexture* pcTexture, CSolidTexture* pcOn);
+	size				IndexOf(CSculptNode* pcNode);
 };
 
 

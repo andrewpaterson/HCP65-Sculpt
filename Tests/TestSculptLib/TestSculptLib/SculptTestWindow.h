@@ -50,7 +50,7 @@ public:
 
 
 //A window with no screen (WinRefLib's), as Sculpt's is, and Sculpt's look: its font, colours and theme.  The window is
-//added to the root; SculptTestWindowDone takes it out.  The look's theme is held by pTheme, so that goes first.
+//added to the root; SculptTestWindowDone takes it out.  Between the two the objects aren't validated at each change.  The look's theme is held by pTheme, so that goes first.
 Ptr<CWindow>	SculptTestWindow(Ptr<CWinRefWindowFactory>& pFactory, int32 iWidth, int32 iHeight, SculptTestTickFunc fTick, void* pvData);
 bool			SculptTestLook(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColours>& pFontColours, Ptr<CWindowTheme>& pTheme);
 void			SculptTestWindowDone(Ptr<CWindow>& pWindow, Ptr<CWinRefWindowFactory>& pFactory);

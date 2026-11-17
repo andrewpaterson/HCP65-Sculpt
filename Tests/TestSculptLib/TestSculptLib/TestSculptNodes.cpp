@@ -772,6 +772,136 @@ void TestSculptNodesAddCopyRemove(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Each change is undone and redone: a setting, a link, a node added and
+// a node moved.  Settings changed close together are one step.  A change
+// after an undo forgets what was undone.  What's shown after an undo is
+// another graph, baked.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptNodesUndo(void)
+{
+	ObjectsInit();
+	{
+		Ptr<CWinRefWindowFactory>	pFactory;
+		Ptr<CWindow>				pWindow;
+		Ptr<CFontColours>			pFontColours;
+		Ptr<CWindowTheme>			pTheme;
+		Ptr<CNodeEditor>			pEditor;
+		Ptr<CSculptNodes>			pNodes;
+		Ptr<CSculptGraph>			pGraph;
+		Ptr<CSculptField>			pField;
+		Ptr<CNumberField>			pNumber;
+		SDialogLook					sLook;
+		STestSculptNodesChanges		sChanges;
+		SComponentInputEvent		sEvent;
+		SInt32Vec2					sFrom;
+
+		pWindow = SculptTestWindow(pFactory, 1000, 600, TestSculptNodesTick, NULL);
+		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
+		pEditor = OMalloc<CNodeEditor>(pWindow, pTheme);
+		pWindow->SetContainer(pEditor);
+		pNodes = OMalloc<CSculptNodes>(pEditor);
+		sChanges.iChanges = 0;
+		pNodes->GetChangeEvent()->Add(&sChanges, &STestSculptNodesChanges::Changed);
+		pGraph = OMalloc<CSculptGraph>(MakeSolidMarble(3));
+		pNodes->SetGraph(pGraph);
+		pWindow->Layout();
+
+		AssertFalse(pNodes->CanUndo());
+		AssertFalse(pNodes->CanRedo());
+		AssertFalse(pNodes->Undo());
+		AssertFalse(pNodes->Redo());
+
+		//The warp's amount changed twice in a moment (a drag): one step.
+		pField = TestSculptNodesField(pNodes, "mfAmount", 0);
+		pNumber = pField->MakeNumber(pWindow, pTheme, "Amount");
+		pNumber->SetValue(0.5);
+		pField->NumberChanged(&pNumber);
+		pNumber->SetValue(0.25);
+		pField->NumberChanged(&pNumber);
+		AssertInt(2, sChanges.iChanges);
+		AssertTrue(pNodes->CanUndo());
+		AssertFalse(pNodes->CanRedo());
+
+		//Undone: another graph, as the first was, shown and baked.
+		AssertTrue(pNodes->Undo());
+		AssertTrue(pNodes->GetGraph() != pGraph);
+		AssertFloat(0.9f, Ptr<CSolidWarp>(pNodes->GetGraph()->GetNode(2)->mpTexture)->mfAmount, 6);
+		AssertSize(5, pEditor->NumNodes());
+		AssertSize(4, pEditor->NumLinks());
+		AssertInt(3, sChanges.iChanges);
+		AssertFalse(pNodes->CanUndo());
+		AssertTrue(pNodes->CanRedo());
+		pField = TestSculptNodesField(pNodes, "mfAmount", 0);
+		AssertDouble(0.9, pField->Get(), 6);
+
+		//Redone, by the key.
+		memset(&sEvent, 0, sizeof(sEvent));
+		sEvent.bControl = true;
+		sEvent.bShift = true;
+		pNodes->UndoAction(&sEvent);
+		AssertFloat(0.25f, Ptr<CSolidWarp>(pNodes->GetGraph()->GetNode(2)->mpTexture)->mfAmount, 6);
+		AssertFalse(pNodes->CanRedo());
+		sEvent.bControl = false;
+		pNodes->UndoAction(&sEvent);  //Z alone is passed on.
+		AssertTrue(sEvent.bPass);
+		AssertFloat(0.25f, Ptr<CSolidWarp>(pNodes->GetGraph()->GetNode(2)->mpTexture)->mfAmount, 6);
+
+		//A link taken off and a node added are a step each.
+		pWindow->Layout();
+		TestSculptNodesDrag(pWindow, pEditor->GetNode(1)->GetSocketPosition(true, 0), SInt32Vec2(500, 580));
+		AssertSize(3, pEditor->NumLinks());
+		pNodes->AddNodeOf(TestSculptNodesShow("Noise Texture"));
+		AssertSize(6, pEditor->NumNodes());
+		AssertTrue(pNodes->Undo());
+		AssertSize(5, pEditor->NumNodes());
+		AssertSize(3, pEditor->NumLinks());
+		AssertTrue(pNodes->Undo());
+		AssertSize(4, pEditor->NumLinks());
+		AssertTrue(pNodes->GetGraph()->GetLinked(&pNodes->GetGraph()->GetNode(1), 0) == pNodes->GetGraph()->GetNode(2));
+		AssertTrue(pNodes->Redo());
+		AssertSize(3, pEditor->NumLinks());
+
+		//A node moved is a step, and undone it's back where it was.
+		pWindow->Layout();
+		sFrom = pEditor->GetNode(3)->GetPosition();
+		sFrom.Init(sFrom.x + NODE_BOX_WIDTH / 2, sFrom.y + pEditor->GetNode(3)->GetHeaderHeight() / 2);
+		TestSculptNodesDrag(pWindow, sFrom, SInt32Vec2(sFrom.x + 60, sFrom.y + 10));
+		AssertInt(-3 * (NODE_BOX_WIDTH + SCULPT_NODES_COLUMN_GAP) + 60, pNodes->GetGraph()->GetNode(3)->msPosition.x);
+
+		//A change after an undo: what was undone (the noise added, and now the move) can't be redone.
+		AssertFalse(pNodes->CanRedo());
+		AssertTrue(pNodes->Undo());
+		AssertInt(-3 * (NODE_BOX_WIDTH + SCULPT_NODES_COLUMN_GAP), pNodes->GetGraph()->GetNode(3)->msPosition.x);
+		AssertInt(-3 * (NODE_BOX_WIDTH + SCULPT_NODES_COLUMN_GAP), pEditor->GetNode(3)->GetNodePosition().x);
+		AssertTrue(pNodes->CanRedo());
+		pNodes->AddNodeOf(TestSculptNodesShow("Mix"));
+		AssertFalse(pNodes->CanRedo());
+		AssertFalse(pNodes->Redo());
+
+		//A new graph has nothing to undo.
+		pNodes->SetGraph(OMalloc<CSculptGraph>(MakeSolidWood(1)));
+		AssertFalse(pNodes->CanUndo());
+
+		pNodes->GetChangeEvent()->Remove(&sChanges);
+		pNumber = NULL;
+		pField = NULL;
+		pGraph = NULL;
+		pNodes = NULL;
+		pEditor = NULL;
+		sLook.Kill();
+		pTheme = NULL;
+		pFontColours = NULL;
+		SculptTestWindowDone(pWindow, pFactory);
+	}
+	AssertTrue(ORoot()->RemoveAll());
+	ObjectsFlush();
+	ObjectsKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptNodes(void)
@@ -782,6 +912,7 @@ void TestSculptNodes(void)
 	TestSculptNodesSettings();
 	TestSculptNodesRamp();
 	TestSculptNodesAddCopyRemove();
+	TestSculptNodesUndo();
 
 	TestStatistics();
 }

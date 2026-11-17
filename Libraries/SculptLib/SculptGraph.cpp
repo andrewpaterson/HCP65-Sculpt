@@ -503,3 +503,77 @@ size CSculptGraph::GetDepth(CSculptNode* pcNode)
 	return uiDepth;
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Where pcNode is among the nodes: their number if it isn't one.
+//
+//////////////////////////////////////////////////////////////////////////
+size CSculptGraph::IndexOf(CSculptNode* pcNode)
+{
+	size	i;
+
+	for (i = 0; i < mapNodes.NumElements(); i++)
+	{
+		if (&mapNodes.Get(i) == pcNode)
+		{
+			return i;
+		}
+	}
+	return mapNodes.NumElements();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each node's texture is copied (SolidCopy), then each copy's inputs are
+// pointed at the copies of what the original's point at: a node's, or a
+// value of its own.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CSculptGraph> CSculptGraph::Copy(void)
+{
+	Ptr<CSculptGraph>	pCopy;
+	Ptr<CSculptNode>	pNode;
+	Ptr<CSculptNode>	pNew;
+	Ptr<CSculptNode>	pLinked;
+	Ptr<CSolidTexture>	pTexture;
+	Ptr<CSolidFlat>		pFlat;
+	size				i;
+	size				j;
+
+	pCopy = OMalloc<CSculptGraph>(Ptr<CSolidTexture>());
+	pCopy->GetOutput()->msPosition = GetOutput()->msPosition;
+	pCopy->GetOutput()->mbPlaced = GetOutput()->mbPlaced;
+	for (i = 1; i < mapNodes.NumElements(); i++)
+	{
+		pNode = mapNodes.Get(i);
+		pTexture = SolidCopy(&pNode->mpTexture);
+		pNew = OMalloc<CSculptNode>(pTexture.IsNotNull() ? pTexture : pNode->mpTexture);
+		pNew->msPosition = pNode->msPosition;
+		pNew->mbPlaced = pNode->mbPlaced;
+		pCopy->mapNodes.Add(pNew);
+	}
+
+	for (i = 0; i < mapNodes.NumElements(); i++)
+	{
+		pNode = mapNodes.Get(i);
+		pNew = pCopy->mapNodes.Get(i);
+		for (j = 0; j < NumInputs(&pNode); j++)
+		{
+			pTexture = GetInput(&pNode, j);
+			pLinked = FindNode(&pTexture);
+			if (pLinked.IsNotNull())
+			{
+				pCopy->SetInput(&pNew, j, pCopy->mapNodes.Get(IndexOf(&pLinked))->mpTexture);
+			}
+			else
+			{
+				pFlat = pTexture;
+				pCopy->SetInput(&pNew, j, OMalloc<CSolidFlat>(&pFlat->msSample));
+			}
+		}
+	}
+	return pCopy;
+}
+

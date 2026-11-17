@@ -33,6 +33,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #define SCULPT_NODES_COLUMN_GAP		60	//Between a column of nodes and the next, when they're arranged.
 #define SCULPT_NODES_ROW_GAP		20	//Between a node and the one under it.
 #define SCULPT_NODES_COPY_OFFSET	30	//Right and down from a node to its copy.
+#define SCULPT_NODES_UNDO_PAUSE		500	//Milliseconds: settings changed closer together than this are undone as one, so a drag is one step.
 
 
 //An item of an Add menu, and which class of texture (SolidShow.h's table) it adds.
@@ -63,6 +64,11 @@ typedef CArrayTemplate<SSculptAddItem>	CArraySculptAddItem;
 //X or Delete removes the selected nodes (never the output), each input they fed having its own value again; Shift+D
 //copies them, a little to the right and down, the copies sharing the originals' inputs.
 //
+//Every change is kept for undoing (Control+Z, and Control+Shift+Z to redo): the graph as it was after each, a copy
+//(CSculptGraph::Copy), the first being the graph as it was given.  Undo shows a copy of the one before, so GetGraph is
+//then another graph.  A setting dragged changes many times a second: changes of settings closer together than
+//SCULPT_NODES_UNDO_PAUSE are one step.  A change after an undo forgets what was undone.
+//
 //A box's data is its node (the graph holds it).  Nodes that haven't been placed are arranged in columns by how far each
 //is from the output (CSculptGraph::GetDepth), the output on the right, as Blender's graphs read.
 class CSculptNodes : public CObject, public CNodeEditorListener
@@ -75,6 +81,10 @@ protected:
 	CArray<CSculptField>			mapFields;  //The settings the boxes show.
 	CArray<CSculptValue>			mapValues;  //The inputs' own values.
 	CArray<CSculptRamp>				mapRamps;  //The ramps' keys.
+	CArray<CSculptGraph>			mapHistory;  //The graph after each change, the first as it was given.
+	size							muiHistory;  //Which of them the graph now is.
+	int64							miSettingTime;  //When a setting last changed, 0 if the last change wasn't one.
+	Ptr<CInputAction>				mpUndoAction;  //The editor's Z.
 	CArraySculptAddItem				masAddItems;  //Of every Add menu made.
 	Ptr<CMenuContainer>				mpAddMenu;  //The editor's context menu.
 	SInt32Vec2						msAddPosition;  //Where the next node added goes, in the editor's space.
@@ -100,6 +110,11 @@ public:
 	void							AddMenuItemClicked(CMenuItem* pcItem);
 	Ptr<CSculptNode>				AddNodeOf(size uiShow);
 	void							FieldChanged(void);
+	bool							Undo(void);
+	bool							Redo(void);
+	bool							CanUndo(void);
+	bool							CanRedo(void);
+	void							UndoAction(SComponentInputEvent* psEvent);
 	size							NumFields(void);
 	Ptr<CSculptField>				GetField(size uiIndex);
 	Ptr<CSculptValue>				FindValue(CSculptNode* pcNode, size uiInput);
@@ -117,6 +132,8 @@ protected:
 	Ptr<CNodeBox>					MakeBox(Ptr<CSculptNode> pNode);
 	void							MakeSettings(Ptr<CNodeBox> pBox, Ptr<CSolidTexture> pTexture);
 	Ptr<CSculptField>				AddField(Ptr<CSolidTexture> pTexture, CUnmanagedField* pcField, size uiElement);
+	void							Keep(bool bSetting);
+	void							ShowHistory(void);
 	void							MakeLinks(void);
 };
 

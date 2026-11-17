@@ -88,11 +88,16 @@ void CSculptTestTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMillieconds,
 // The window's pixels are B, G, R, X and its background the dark
 // theme's panel colour, as Sculpt's are.  It writes no frames.
 //
+// As in Sculpt, the objects aren't validated each time one changes while
+// the window is there: a graph kept for every change is too many for
+// that.  SculptTestWindowDone validates them once.
+//
 //////////////////////////////////////////////////////////////////////////
 Ptr<CWindow> SculptTestWindow(Ptr<CWinRefWindowFactory>& pFactory, int32 iWidth, int32 iHeight, SculptTestTickFunc fTick, void* pvData)
 {
 	Ptr<CWindow>	pWindow;
 
+	gcObjects.DisableValidation();
 	pFactory = OMalloc<CWinRefWindowFactory>(&gcMemoryAllocator, iWidth, iHeight, (char*)NULL);
 	pWindow = OMalloc<CWindow>("Sculpt Test", &pFactory, OMalloc<CSculptTestTick>(fTick, pvData), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 	ORoot()->Add(pWindow);
@@ -130,6 +135,8 @@ bool SculptTestLook(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColours>
 //////////////////////////////////////////////////////////////////////////
 void SculptTestWindowDone(Ptr<CWindow>& pWindow, Ptr<CWinRefWindowFactory>& pFactory)
 {
+	gcObjects.EnableValidation();
+	gcObjects.ValidateObjectsConsistency();
 	ORoot()->Remove(pWindow);
 	pWindow = NULL;
 	pFactory = NULL;

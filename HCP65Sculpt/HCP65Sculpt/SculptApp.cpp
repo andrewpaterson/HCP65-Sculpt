@@ -114,20 +114,25 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The menu bar along the top: File has Exit, and Add the nodes that can
-// be added to the material's graph (the page's nodes make it and take its
-// clicks).
+// The menu bar along the top: File has Exit, Edit has Undo and Redo of
+// the material's graph, and Add the nodes that can be added to it (the
+// page's nodes make it and take its clicks).
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptApp::MakeMenus(void)
 {
 	Ptr<CMenuContainer>	pFileMenu;
+	Ptr<CMenuContainer>	pEditMenu;
 
 	mpMenuBar = OMalloc<CMenuBar>(mpWindow, mpTheme);
 	mpMenuBar->SetAlignment(CSH_Stretch, CSV_Stretch);
 	pFileMenu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
 	mpMenuBar->AddMenu("File", pFileMenu);
 	mpExit = pFileMenu->AddItem("Exit");
+	pEditMenu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
+	mpMenuBar->AddMenu("Edit", pEditMenu);
+	mpUndo = pEditMenu->AddItem("Undo");
+	mpRedo = pEditMenu->AddItem("Redo");
 	mpMenuBar->AddMenu("Add", mpPage->GetNodes()->MakeAddMenu());
 	mpMenuBar->GetItemClickEvent()->Add(this, &CSculptApp::MenuItemClicked);
 }
@@ -145,6 +150,8 @@ void CSculptApp::Class(void)
 	M_Pointer(mpMain);
 	M_Pointer(mpMenuBar);
 	M_Pointer(mpExit);
+	M_Pointer(mpUndo);
+	M_Pointer(mpRedo);
 	M_Pointer(mpPage);
 	U_Data(SDialogLook, msDialogLook);
 	M_Pointer(mpInput);
@@ -263,7 +270,7 @@ void CSculptApp::Snapshot(Ptr<CWindow> pWindow)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Only asks: the window's tick does it.
+// Exit only asks: the window's tick does it.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptApp::MenuItemClicked(CMenuItem* pcItem)
@@ -271,6 +278,14 @@ void CSculptApp::MenuItemClicked(CMenuItem* pcItem)
 	if (&mpExit == pcItem)
 	{
 		mbExit = true;
+	}
+	else if (&mpUndo == pcItem)
+	{
+		mpPage->GetNodes()->Undo();
+	}
+	else if (&mpRedo == pcItem)
+	{
+		mpPage->GetNodes()->Redo();
 	}
 }
 

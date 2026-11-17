@@ -57,6 +57,8 @@ protected:
 	Ptr<CGridContainer>			mpMain;  //The menu bar over the page.
 	Ptr<CMenuBar>				mpMenuBar;
 	Ptr<CMenuItem>				mpExit;
+	Ptr<CMenuItem>				mpUndo;
+	Ptr<CMenuItem>				mpRedo;
 	Ptr<CSculptPage>			mpPage;
 	SDialogLook					msDialogLook;
 	Ptr<CInput>					mpInput;

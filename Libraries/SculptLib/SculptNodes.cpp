@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include "BaseLib/Timer.h"
 #include "StandardLib/Class.h"
 #include "StandardLib/ClassDefines.h"
 #include "StandardLib/Objects.h"
@@ -37,6 +38,9 @@ void CSculptNodes::Init(Ptr<CNodeEditor> pEditor)
 	mapFields.Init();
 	mapValues.Init();
 	mapRamps.Init();
+	mapHistory.Init();
+	muiHistory = 0;
+	miSettingTime = 0;
 	masAddItems.Init();
 	msAddPosition.Init(0, 0);
 	mbAddAtPointer = false;
@@ -44,6 +48,7 @@ void CSculptNodes::Init(Ptr<CNodeEditor> pEditor)
 	mpEditor->SetListener(this);
 	mpAddMenu = MakeAddMenu();
 	mpEditor->SetContextMenu(mpAddMenu);
+	mpUndoAction = mpEditor->AddInputAction(IAF_KeyDown, "Z", this, &CSculptNodes::UndoAction);
 
 	PostInit();
 }
@@ -60,6 +65,10 @@ void CSculptNodes::Class(void)
 	M_Embedded(mapFields);
 	M_Embedded(mapValues);
 	M_Embedded(mapRamps);
+	M_Embedded(mapHistory);
+	U_Size(muiHistory);
+	U_Int64(miSettingTime);
+	M_Pointer(mpUndoAction);
 	U_Unknown(CArraySculptAddItem, masAddItems);
 	M_Pointer(mpAddMenu);
 	U_2Int32(msAddPosition);
@@ -79,6 +88,7 @@ void CSculptNodes::Free(void)
 	{
 		mpEditor->SetListener(NULL);
 		mpEditor->SetContextMenu(Ptr<CMenuContainer>());
+		mpEditor->RemoveInputAction(mpUndoAction);
 	}
 	masAddItems.Kill();
 	mcChanged.Kill();
@@ -104,6 +114,15 @@ void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 	mpGraph = pGraph;
 	Rebuild();
 	mpEditor->FrameAll();
+
+	//There's nothing to undo back to before it.
+	mapHistory.RemoveAll();
+	muiHistory = 0;
+	miSettingTime = 0;
+	if (mpGraph.IsNotNull())
+	{
+		mapHistory.Add(mpGraph->Copy());
+	}
 }
 
 
@@ -335,7 +354,109 @@ Ptr<CSculptValue> CSculptNodes::FindValue(CSculptNode* pcNode, size uiInput)
 //////////////////////////////////////////////////////////////////////////
 void CSculptNodes::FieldChanged(void)
 {
+	Keep(true);
 	mcChanged.Call(this);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The graph has changed: what it now is is kept, after what it was, and
+// anything undone is forgotten.  A setting's change (bSetting) close on
+// another's takes the last's place, so a drag is undone at once.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::Keep(bool bSetting)
+{
+	int64	iNow;
+	bool	bSameStep;
+
+	iNow = GetDebugTickCount();
+	bSameStep = bSetting && (miSettingTime != 0) && (iNow - miSettingTime < SCULPT_NODES_UNDO_PAUSE) && (muiHistory > 0);
+	miSettingTime = bSetting ? iNow : 0;
+
+	while (mapHistory.NumElements() > muiHistory + (bSameStep ? 0 : 1))
+	{
+		mapHistory.RemoveAt(mapHistory.NumElements() - 1);
+	}
+	mapHistory.Add(mpGraph->Copy());
+	muiHistory = mapHistory.NumElements() - 1;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The graph is a copy of the muiHistory'th kept: shown where the view
+// is, and baked.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::ShowHistory(void)
+{
+	miSettingTime = 0;
+	mpGraph = mapHistory.Get(muiHistory)->Copy();
+	Rebuild();
+	mcChanged.Call(this);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The graph as it was before the last change.  False if there's none.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptNodes::Undo(void)
+{
+	if (!CanUndo())
+	{
+		return false;
+	}
+	muiHistory--;
+	ShowHistory();
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The change last undone, again.  False if nothing was undone since the
+// last change.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptNodes::Redo(void)
+{
+	if (!CanRedo())
+	{
+		return false;
+	}
+	muiHistory++;
+	ShowHistory();
+	return true;
+}
+
+
+bool CSculptNodes::CanUndo(void) { return muiHistory > 0; }
+bool CSculptNodes::CanRedo(void) { return muiHistory + 1 < mapHistory.NumElements(); }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Control+Z undoes and Control+Shift+Z redoes; Z alone is someone else's.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::UndoAction(SComponentInputEvent* psEvent)
+{
+	if (!psEvent->bControl)
+	{
+		psEvent->bPass = true;
+	}
+	else if (psEvent->bShift)
+	{
+		Redo();
+	}
+	else
+	{
+		Undo();
+	}
 }
 
 
@@ -448,6 +569,7 @@ bool CSculptNodes::CanLink(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size
 void CSculptNodes::Linked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput)
 {
 	mpGraph->Link(GetNode(pcFrom), GetNode(pcTo), uiInput);
+	Keep(false);
 	mcChanged.Call(this);
 }
 
@@ -466,6 +588,7 @@ void CSculptNodes::Unlinked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, siz
 	{
 		pValue->Show();  //The input has a new value of its own.
 	}
+	Keep(false);
 	mcChanged.Call(this);
 }
 
@@ -487,6 +610,7 @@ void CSculptNodes::NodesMoved(void)
 		sPosition = pBox->GetNodePosition();
 		GetNode(&pBox)->Place(sPosition.x, sPosition.y);
 	}
+	Keep(false);
 }
 
 
@@ -576,6 +700,7 @@ Ptr<CSculptNode> CSculptNodes::AddNodeOf(size uiShow)
 
 	pNode = mpGraph->AddNode(psShow->fMake());
 	pNode->Place(msAddPosition.x, msAddPosition.y);
+	Keep(false);
 	Rebuild();
 	mpEditor->Select(FindBox(&pNode), false);
 	return pNode;
@@ -626,6 +751,7 @@ void CSculptNodes::DeleteSelected(void)
 	}
 	if (bRemoved)
 	{
+		Keep(false);
 		Rebuild();
 		mcChanged.Call(this);
 	}
@@ -666,6 +792,7 @@ void CSculptNodes::DuplicateSelected(void)
 	}
 	if (apcCopies.NumElements() > 0)
 	{
+		Keep(false);
 		Rebuild();
 		mpEditor->SelectNone();
 		for (i = 0; i < apcCopies.NumElements(); i++)

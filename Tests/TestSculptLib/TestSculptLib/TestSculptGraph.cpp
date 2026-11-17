@@ -279,6 +279,63 @@ void TestSculptGraphLinks(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A copy is other textures that are as the graph's and linked as they
+// are, its nodes where the graph's are; changing one changes nothing of
+// the other.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptGraphCopy(void)
+{
+	Ptr<CSculptGraph>	pGraph;
+	Ptr<CSculptGraph>	pCopy;
+	Ptr<CSolidRamp>		pRamp;
+	Ptr<CSolidRamp>		pRampCopy;
+	Ptr<CSolidWarp>		pWarpCopy;
+	float32				fRed;
+	size				i;
+
+	pGraph = OMalloc<CSculptGraph>(MakeSolidMarble(3));
+	pGraph->GetNode(2)->Place(-200, 35);
+	pGraph->Unlink(&pGraph->GetNode(2), 1);  //The warp is by a value of its own.
+	fRed = TestSculptGraphRed(pGraph->GetSurface());
+
+	pCopy = pGraph->Copy();
+	AssertSize(pGraph->NumNodes(), pCopy->NumNodes());
+	AssertFloat(fRed, TestSculptGraphRed(pCopy->GetSurface()), 6);
+	AssertTrue(pCopy->GetSurface() != pGraph->GetSurface());
+	AssertTrue(pCopy->GetOutput()->IsOutput());
+	for (i = 1; i < pGraph->NumNodes(); i++)
+	{
+		AssertTrue(pCopy->GetNode(i)->mpTexture != pGraph->GetNode(i)->mpTexture);
+		AssertString(pGraph->GetNode(i)->mpTexture->GetClass()->GetName(), pCopy->GetNode(i)->mpTexture->GetClass()->GetName());
+	}
+	AssertInt(-200, pCopy->GetNode(2)->msPosition.x);
+	AssertTrue(pCopy->GetNode(2)->mbPlaced);
+	AssertFalse(pCopy->GetNode(1)->mbPlaced);
+
+	//Linked as the graph is, to its own textures; values are its own.
+	AssertTrue(pCopy->GetLinked(&pCopy->GetOutput(), 0) == pCopy->GetNode(1));
+	AssertTrue(pCopy->GetLinked(&pCopy->GetNode(1), 0) == pCopy->GetNode(2));
+	AssertTrue(pCopy->GetLinked(&pCopy->GetNode(2), 0) == pCopy->GetNode(3));
+	AssertTrue(pCopy->GetLinked(&pCopy->GetNode(2), 1).IsNull());
+	AssertTrue(CSculptGraph::IsValue(pCopy->GetInput(&pCopy->GetNode(2), 1)));
+	AssertTrue(pCopy->GetInput(&pCopy->GetNode(2), 1) != pGraph->GetInput(&pGraph->GetNode(2), 1));
+
+	//The copy changed: the graph is as it was.
+	pRamp = pGraph->GetNode(1)->mpTexture;
+	pRampCopy = pCopy->GetNode(1)->mpTexture;
+	pWarpCopy = pCopy->GetNode(2)->mpTexture;
+	pRampCopy->masKeys.Get(0)->sSample.sColour.x = 0.0f;
+	pWarpCopy->mfAmount = 3.0f;
+	pCopy->Unlink(&pCopy->GetNode(1), 0);
+	AssertFloat(fRed, TestSculptGraphRed(pGraph->GetSurface()), 6);
+	AssertTrue(pRamp->masKeys.Get(0)->sSample.sColour.x > 0.5f);
+	AssertTrue(pGraph->GetLinked(&pGraph->GetNode(1), 0) == pGraph->GetNode(2));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptGraph(void)
@@ -289,6 +346,7 @@ void TestSculptGraph(void)
 	TestSculptGraphShow();
 	TestSculptGraphMarble();
 	TestSculptGraphLinks();
+	TestSculptGraphCopy();
 
 	ObjectsDiscard();
 	ObjectsKill(false);
