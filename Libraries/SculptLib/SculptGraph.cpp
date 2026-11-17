@@ -143,7 +143,7 @@ void CSculptNode::Class(void)
 
 
 void CSculptNode::Free(void) {}
-bool CSculptNode::IsOutput(void) { return mpTexture.IsNull(); }
+bool CSculptNode::IsOutput(void) const { return mpTexture.IsNull(); }
 void CSculptNode::Place(int32 x, int32 y) { msPosition.Init(x, y); mbPlaced = true; }
 
 
@@ -186,7 +186,7 @@ void CSculptGraph::Class(void)
 
 
 void CSculptGraph::Free(void) {}
-Ptr<CSolidTexture> CSculptGraph::GetSurface(void) { return mpSurface; }
+Ptr<CSolidTexture> CSculptGraph::GetSurface(void) const { return mpSurface; }
 size CSculptGraph::NumNodes(void) { return mapNodes.NumElements(); }
 Ptr<CSculptNode> CSculptGraph::GetNode(size uiIndex) { return mapNodes.Get(uiIndex); }
 Ptr<CSculptNode> CSculptGraph::GetOutput(void) { return mapNodes.Get(0); }

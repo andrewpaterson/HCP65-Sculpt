@@ -55,8 +55,8 @@ public:
 	void					Free(void) override;
 
 	void					AddRows(Ptr<CNodeBox> pBox, Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme);
-	Ptr<CSolidRamp>			GetRamp(void);
-	Ptr<CColourRampBar>		GetBar(void);
+	Ptr<CSolidRamp>			GetRamp(void) const;
+	Ptr<CColourRampBar>		GetBar(void) const;
 	Ptr<CNumberField>		GetExtra(size uiExtra);
 
 	void					BarChanged(CColourRampBar* pcBar);

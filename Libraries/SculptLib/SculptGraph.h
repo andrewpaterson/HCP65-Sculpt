@@ -40,7 +40,7 @@ public:
 	void	Class(void) override;
 	void	Free(void) override;
 
-	bool	IsOutput(void);
+	bool	IsOutput(void) const;
 	void	Place(int32 x, int32 y);
 };
 
@@ -71,7 +71,7 @@ public:
 	void				Class(void) override;
 	void				Free(void) override;
 
-	Ptr<CSolidTexture>	GetSurface(void);
+	Ptr<CSolidTexture>	GetSurface(void) const;
 	size				NumNodes(void);
 	Ptr<CSculptNode>	GetNode(size uiIndex);
 	Ptr<CSculptNode>	GetOutput(void);

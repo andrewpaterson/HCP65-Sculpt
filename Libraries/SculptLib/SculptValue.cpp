@@ -76,10 +76,10 @@ void CSculptValue::Free(void)
 }
 
 
-Ptr<CSculptNode> CSculptValue::GetNode(void) { return mpNode; }
-size CSculptValue::GetInput(void) { return muiInput; }
-Ptr<CNumberField> CSculptValue::GetNumber(void) { return mpNumber; }
-Ptr<CColourField> CSculptValue::GetColour(void) { return mpColour; }
+Ptr<CSculptNode> CSculptValue::GetNode(void) const { return mpNode; }
+size CSculptValue::GetInput(void) const { return muiInput; }
+Ptr<CNumberField> CSculptValue::GetNumber(void) const { return mpNumber; }
+Ptr<CColourField> CSculptValue::GetColour(void) const { return mpColour; }
 
 
 //////////////////////////////////////////////////////////////////////////

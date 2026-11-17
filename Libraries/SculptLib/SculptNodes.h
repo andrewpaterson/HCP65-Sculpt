@@ -98,8 +98,8 @@ public:
 	void							Free(void) override;
 
 	void							SetGraph(Ptr<CSculptGraph> pGraph);
-	Ptr<CSculptGraph>				GetGraph(void);
-	Ptr<CNodeEditor>				GetEditor(void);
+	Ptr<CSculptGraph>				GetGraph(void) const;
+	Ptr<CNodeEditor>				GetEditor(void) const;
 	CComponentEvent<CSculptNodes>*	GetChangeEvent(void);
 
 	Ptr<CNodeBox>					FindBox(CSculptNode* pcNode);

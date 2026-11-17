@@ -54,10 +54,10 @@ public:
 
 	Ptr<CComponent>		Make(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme, const char* szLabel);
 	Ptr<CSolidFlat>		GetFlat(void);
-	Ptr<CSculptNode>	GetNode(void);
-	size				GetInput(void);
-	Ptr<CNumberField>	GetNumber(void);
-	Ptr<CColourField>	GetColour(void);
+	Ptr<CSculptNode>	GetNode(void) const;
+	size				GetInput(void) const;
+	Ptr<CNumberField>	GetNumber(void) const;
+	Ptr<CColourField>	GetColour(void) const;
 	void				Show(void);
 
 	void				NumberChanged(CNumberField* pcNumber);

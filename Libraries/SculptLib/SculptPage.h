@@ -101,10 +101,10 @@ public:
 	void				Class(void) override;
 	void				Free(void) override;
 
-	Ptr<CSceneView>		GetView(void);
-	Ptr<CSculptNodes>	GetNodes(void);
-	Ptr<CSculptPanel>	GetPanel(void);
-	Ptr<CMeshBake>		GetBake(void);
+	Ptr<CSceneView>		GetView(void) const;
+	Ptr<CSculptNodes>	GetNodes(void) const;
+	Ptr<CSculptPanel>	GetPanel(void) const;
+	Ptr<CMeshBake>		GetBake(void) const;
 	Ptr<CShape>			GetShape(void);
 	void				PanelChanged(void);
 	void				SetMaterial(Ptr<CSolidTexture> pSurface);
@@ -113,11 +113,11 @@ public:
 	bool				Open(const char* szFilename);
 	bool				ExportMaterial(const char* szFilename);
 	void				MaterialChanged(void);
-	bool				IsCoarse(void);
+	bool				IsCoarse(void) const;
 	void				BakeFine(void);
 	bool				DropSphere(int32 x, int32 y);
 	void				Clear(void);
-	int32				NumSpheres(void);
+	int32				NumSpheres(void) const;
 
 	void				Clicked(CSceneView* pcView);
 	void				DeleteAction(SComponentInputEvent* psEvent);

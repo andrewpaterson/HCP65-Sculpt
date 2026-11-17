@@ -57,7 +57,7 @@ void CSculptField::Class(void)
 
 
 void CSculptField::Free(void) {}
-char* CSculptField::GetFieldName(void) { return mpcField->GetName(); }
+char* CSculptField::GetFieldName(void) const { return mpcField->GetName(); }
 
 
 //////////////////////////////////////////////////////////////////////////

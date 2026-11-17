@@ -65,7 +65,7 @@ public:
 
 	float64					Get(void);
 	void					Set(float64 fValue);
-	char*					GetFieldName(void);
+	char*					GetFieldName(void) const;
 
 	Ptr<CNumberField>		MakeNumber(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme, const char* szLabel);
 	Ptr<CCheckBox>			MakeTick(Ptr<CWindow> pWindow, Ptr<CWindowTheme> pTheme, const char* szLabel);

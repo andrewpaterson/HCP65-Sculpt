@@ -98,8 +98,8 @@ void CSculptNodes::Free(void)
 }
 
 
-Ptr<CSculptGraph> CSculptNodes::GetGraph(void) { return mpGraph; }
-Ptr<CNodeEditor> CSculptNodes::GetEditor(void) { return mpEditor; }
+Ptr<CSculptGraph> CSculptNodes::GetGraph(void) const { return mpGraph; }
+Ptr<CNodeEditor> CSculptNodes::GetEditor(void) const { return mpEditor; }
 CComponentEvent<CSculptNodes>* CSculptNodes::GetChangeEvent(void) { return &mcChanged; }
 CSculptNode* CSculptNodes::GetNode(CNodeBox* pcBox) { return (CSculptNode*)pcBox->GetData(); }
 size CSculptNodes::NumFields(void) { return mapFields.NumElements(); }

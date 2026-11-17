@@ -83,8 +83,8 @@ void CSculptRamp::Free(void)
 }
 
 
-Ptr<CSolidRamp> CSculptRamp::GetRamp(void) { return mpRamp; }
-Ptr<CColourRampBar> CSculptRamp::GetBar(void) { return mpBar; }
+Ptr<CSolidRamp> CSculptRamp::GetRamp(void) const { return mpRamp; }
+Ptr<CColourRampBar> CSculptRamp::GetBar(void) const { return mpBar; }
 Ptr<CNumberField> CSculptRamp::GetExtra(size uiExtra) { return mapExtras[uiExtra]; }
 
 

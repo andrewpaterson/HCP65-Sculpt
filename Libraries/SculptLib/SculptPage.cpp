@@ -359,7 +359,7 @@ void CSculptPage::Rebake(bool bCoarse)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-Ptr<CSceneView> CSculptPage::GetView(void)
+Ptr<CSceneView> CSculptPage::GetView(void) const
 {
 	return mpView;
 }
@@ -369,7 +369,7 @@ Ptr<CSceneView> CSculptPage::GetView(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-Ptr<CSculptNodes> CSculptPage::GetNodes(void)
+Ptr<CSculptNodes> CSculptPage::GetNodes(void) const
 {
 	return mpNodes;
 }
@@ -508,8 +508,8 @@ void CSculptPage::PanelChanged(void)
 }
 
 
-Ptr<CSculptPanel> CSculptPage::GetPanel(void) { return mpPanel; }
-Ptr<CMeshBake> CSculptPage::GetBake(void) { return mpBake; }
+Ptr<CSculptPanel> CSculptPage::GetPanel(void) const { return mpPanel; }
+Ptr<CMeshBake> CSculptPage::GetBake(void) const { return mpBake; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -517,7 +517,7 @@ Ptr<CMeshBake> CSculptPage::GetBake(void) { return mpBake; }
 // What's shown is baked at the coarse density: the whole one is to come.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CSculptPage::IsCoarse(void)
+bool CSculptPage::IsCoarse(void) const
 {
 	return mbCoarse;
 }
@@ -589,7 +589,7 @@ void CSculptPage::Clear(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-int32 CSculptPage::NumSpheres(void)
+int32 CSculptPage::NumSpheres(void) const
 {
 	return miSpheres;
 }
