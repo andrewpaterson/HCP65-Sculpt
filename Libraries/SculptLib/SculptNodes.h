@@ -25,6 +25,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "WindowLib/NodeEditor.h"
 #include "SculptField.h"
 #include "SculptGraph.h"
+#include "SculptValue.h"
 
 
 #define SCULPT_NODES_COLUMN_GAP		60	//Between a column of nodes and the next, when they're arranged.
@@ -39,6 +40,9 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //(CSculptField): a number field for a number, three for a vector, a tick for a bool, a combo box for an enum.  A setting changed is put in the
 //texture and the change event called.
 //
+//An input shows its own value while nothing is linked to it (CSculptValue): a colour, or a number for a factor.  A value
+//changed is the material's too.
+//
 //A box's data is its node (the graph holds it).  Nodes that haven't been placed are arranged in columns by how far each
 //is from the output (CSculptGraph::GetDepth), the output on the right, as Blender's graphs read.
 class CSculptNodes : public CObject, public CNodeEditorListener
@@ -49,6 +53,7 @@ protected:
 	Ptr<CNodeEditor>				mpEditor;
 	Ptr<CSculptGraph>				mpGraph;
 	CArray<CSculptField>			mapFields;  //The settings the boxes show.
+	CArray<CSculptValue>			mapValues;  //The inputs' own values.
 	CComponentEvent<CSculptNodes>	mcChanged;
 
 public:
@@ -67,6 +72,7 @@ public:
 	void							FieldChanged(void);
 	size							NumFields(void);
 	Ptr<CSculptField>				GetField(size uiIndex);
+	Ptr<CSculptValue>				FindValue(CSculptNode* pcNode, size uiInput);
 
 	bool							CanLink(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;
 	void							Linked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;

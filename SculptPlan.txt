@@ -198,6 +198,10 @@ The graph in Sculpt
     12 bytes past it, off the end of the object when the enum was its last field (a CSolidMerge).  U_Enum passes the
     enum's size now.
 14. Colours: the swatch and the picker.
+    Done: WindowLib's CColourField (a named swatch) opens a CColourPicker under itself as a popup: number fields for
+    red, green, blue, hue, saturation and value, and a hex field; a grey keeps the hue last chosen.  SupportLib has
+    ColourRGBToHSV and back.  In Sculpt it's what an input's own value is shown with (CSculptValue): the input's flat
+    texture's colour, or for a factor (a ramp's, a mask's, a warp's amount) a number from 0 to 1 which is a grey.
 15. The ramp bar (CColourRampBar) on CSolidRamp's node.
 16. Adding (Shift+A and the Add menu), removing, copying.
 17. CSolidChannel and CSolidCombine (Blender's Separate and Combine).

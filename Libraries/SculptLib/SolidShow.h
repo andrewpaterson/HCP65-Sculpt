@@ -44,7 +44,7 @@ enum ESolidFieldShow
 {
 	SFS_Plain,		//As its type is: a number, a whole number, a tick, three numbers.
 	SFS_Hidden,		//Not at all.
-	SFS_Range,		//A number kept between fMinimum and fMaximum.
+	SFS_Range,		//A number kept between fMinimum and fMaximum.  Of an input: its own value is a number, not a colour.
 	SFS_Enum,		//One of szNames, which are separated by |, in the enum's order.
 };
 

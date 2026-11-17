@@ -24,6 +24,7 @@
     <ClCompile Include="SculptGraph.cpp" />
     <ClCompile Include="SculptNodes.cpp" />
     <ClCompile Include="SculptField.cpp" />
+    <ClCompile Include="SculptValue.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptPage.h" />
@@ -31,6 +32,7 @@
     <ClInclude Include="SculptGraph.h" />
     <ClInclude Include="SculptNodes.h" />
     <ClInclude Include="SculptField.h" />
+    <ClInclude Include="SculptValue.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E262449F-EA8D-4BAB-B5DB-331976595327}</ProjectGuid>

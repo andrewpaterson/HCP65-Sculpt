@@ -21,6 +21,9 @@
     <ClCompile Include="SculptField.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="SculptValue.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SculptPage.h">
@@ -36,6 +39,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SculptField.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SculptValue.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

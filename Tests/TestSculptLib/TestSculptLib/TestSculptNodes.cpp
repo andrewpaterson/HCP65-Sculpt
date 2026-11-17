@@ -22,6 +22,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "StandardLib/Objects.h"
 #include "ProceduralLib/SolidAdjust.h"
 #include "ProceduralLib/SolidBricks.h"
+#include "ProceduralLib/SolidFlat.h"
 #include "ProceduralLib/SolidMerge.h"
 #include "ProceduralLib/SolidNoise.h"
 #include "ProceduralLib/SolidSlope.h"
@@ -99,6 +100,7 @@ void TestSculptNodesMarble(void)
 		Ptr<CNodeBox>				pGradient;
 		Ptr<CNodeBox>				pNoise;
 		Ptr<CSolidRamp>				pRampTexture;
+		Ptr<CSculptValue>			pValue;
 		SDialogLook					sLook;
 		STestSculptNodesChanges		sChanges;
 		SInt32Vec2					sFrom;
@@ -171,6 +173,24 @@ void TestSculptNodesMarble(void)
 		AssertSize(3, pEditor->NumLinks());
 		AssertInt(3, sChanges.iChanges);
 
+		//Its own value is a factor, shown as a number in the input's row: the middle grey an unlinked input starts with.
+		pValue = pNodes->FindValue(&pGraph->GetNode(1), 0);
+		AssertTrue(pValue->GetColour().IsNull());
+		AssertDouble(0.5, pValue->GetNumber()->GetValue(), 6);
+		AssertFalse(pRamp->IsInputLinked(0));
+		pValue->GetNumber()->SetValue(0.75);
+		pValue->NumberChanged(&pValue->GetNumber());
+		AssertFloat(0.75f, pValue->GetFlat()->msSample.Value(), 6);
+		AssertFloat(0.0f, pValue->GetFlat()->msSample.fHeight, 6);
+		AssertInt(4, sChanges.iChanges);
+		sChanges.iChanges = 3;
+
+		//The output's surface is a colour; while a node's linked to it, it has no flat texture to show.
+		pValue = pNodes->FindValue(&pGraph->GetNode(0), 0);
+		AssertTrue(pValue->GetColour().IsNotNull());
+		AssertTrue(pValue->GetFlat().IsNull());
+		AssertTrue(pOutput->IsInputLinked(0));
+
 		//A node dragged by its title is where its box is.
 		sFrom = pWarp->GetPosition();
 		sFrom.Init(sFrom.x + NODE_BOX_WIDTH / 2, sFrom.y + pWarp->GetHeaderHeight() / 2);
@@ -186,6 +206,7 @@ void TestSculptNodesMarble(void)
 		AssertString("Material Output", pEditor->GetNode(0)->GetTitle());
 
 		pNodes->GetChangeEvent()->Remove(&sChanges);
+		pValue = NULL;
 		pRampTexture = NULL;
 		pOutput = NULL;
 		pRamp = NULL;
@@ -263,6 +284,8 @@ void TestSculptNodesSettings(void)
 		Ptr<CSolidMerge>			pMerge;
 		SDialogLook					sLook;
 		STestSculptNodesChanges		sChanges;
+		Ptr<CSculptValue>			pValue;
+		SSolidSample				sSample;
 		SFloat32Vec3				sSize;
 
 		pWindow = SculptTestWindow(pFactory, 1000, 600, TestSculptNodesTick, NULL);
@@ -378,6 +401,28 @@ void TestSculptNodesSettings(void)
 		//Another graph: the first's settings are gone.
 		pNodes->SetGraph(OMalloc<CSculptGraph>(OMalloc<CSolidSlope>()));
 		AssertSize(4, pNodes->NumFields());  //A scale and a direction.
+
+		//A merge of two flat textures: each is its input's own colour, changed with a colour field.
+		sSample.Init(Set32BitColour((uint8)255, (uint8)128, (uint8)0));
+		pMerge = OMalloc<CSolidMerge>(SM_Add, OMalloc<CSolidFlat>(&sSample), Ptr<CSolidTexture>());
+		pNodes->SetGraph(OMalloc<CSculptGraph>(pMerge));
+		AssertSize(2, pEditor->NumNodes());
+		AssertSize(1, pEditor->NumLinks());
+		pValue = pNodes->FindValue(&pNodes->GetGraph()->GetNode(1), 0);
+		AssertTrue(pValue->GetNumber().IsNull());
+		AssertFloat(1.0f, pValue->GetColour()->GetColour()[0], 6);
+		AssertFloat(128.0f / 255.0f, pValue->GetColour()->GetColour()[1], 6);
+		sChanges.iChanges = 0;
+		pValue->GetColour()->SetColour(0.25f, 0.5f, 0.75f);
+		pValue->ColourChanged(&pValue->GetColour());
+		AssertTrue(pMerge->mpFirst == pValue->GetFlat());
+		AssertFloat(0.25f, pValue->GetFlat()->msSample.sColour.x, 6);
+		AssertFloat(0.75f, pValue->GetFlat()->msSample.sColour.z, 6);
+		AssertFloat(1.0f, pValue->GetFlat()->msSample.sColour.w, 6);
+		AssertInt(1, sChanges.iChanges);
+		pValue = pNodes->FindValue(&pNodes->GetGraph()->GetNode(1), 1);
+		AssertFloat(0.0f, pValue->GetColour()->GetColour()[0], 6);  //Nothing was linked: black.
+		pValue = NULL;
 
 		pNodes->GetChangeEvent()->Remove(&sChanges);
 		pChoice = NULL;

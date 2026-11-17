@@ -35,6 +35,7 @@ void CSculptNodes::Init(Ptr<CNodeEditor> pEditor)
 
 	mpEditor = pEditor;
 	mapFields.Init();
+	mapValues.Init();
 	mcChanged.Init();
 	mpEditor->SetListener(this);
 
@@ -51,6 +52,7 @@ void CSculptNodes::Class(void)
 	M_Pointer(mpEditor);
 	M_Pointer(mpGraph);
 	M_Embedded(mapFields);
+	M_Embedded(mapValues);
 	U_Unknown(CComponentEvent<CSculptNodes>, mcChanged);
 }
 
@@ -90,6 +92,7 @@ void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 
 	mpEditor->RemoveAllNodes();
 	mapFields.RemoveAll();
+	mapValues.RemoveAll();
 	mpGraph = pGraph;
 	if (mpGraph.IsNull())
 	{
@@ -108,15 +111,17 @@ void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 //////////////////////////////////////////////////////////////////////////
 //
 // A node's box: its title and kind's colour, its output (the output
-// node has none), its texture's settings and its inputs.
+// node has none), its texture's settings and its inputs, each with its
+// own value to show while nothing is linked to it.
 //
 //////////////////////////////////////////////////////////////////////////
 Ptr<CNodeBox> CSculptNodes::MakeBox(Ptr<CSculptNode> pNode)
 {
-	Ptr<CNodeBox>	pBox;
-	CChars			szText;
-	ESolidNodeKind	eKind;
-	size			i;
+	Ptr<CNodeBox>		pBox;
+	Ptr<CSculptValue>	pValue;
+	CChars				szText;
+	ESolidNodeKind		eKind;
+	size				i;
 
 	szText.Init();
 	if (pNode->IsOutput())
@@ -142,7 +147,9 @@ Ptr<CNodeBox> CSculptNodes::MakeBox(Ptr<CSculptNode> pNode)
 	{
 		szText.Clear();
 		mpGraph->GetInputLabel(&szText, &pNode, i);
-		pBox->AddInput(szText.Text(), SOLID_SOCKET_COLOUR);
+		pValue = OMalloc<CSculptValue>(mpGraph, pNode, i, this);
+		mapValues.Add(pValue);
+		pBox->AddInput(szText.Text(), SOLID_SOCKET_COLOUR, pValue->Make(mpEditor->GetWindow(), mpEditor->GetTheme(), szText.Text()));
 	}
 	szText.Kill();
 	return pBox;
@@ -240,7 +247,29 @@ Ptr<CSculptField> CSculptNodes::AddField(Ptr<CSolidTexture> pTexture, CUnmanaged
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A setting was changed: the material is another.
+// The value of pcNode's uiInput'th input: NULL if it has none.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CSculptValue> CSculptNodes::FindValue(CSculptNode* pcNode, size uiInput)
+{
+	Ptr<CSculptValue>	pValue;
+	size				i;
+
+	for (i = 0; i < mapValues.NumElements(); i++)
+	{
+		pValue = mapValues.Get(i);
+		if ((&pValue->GetNode() == pcNode) && (pValue->GetInput() == uiInput))
+		{
+			return pValue;
+		}
+	}
+	return NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A setting or a value was changed: the material is another.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptNodes::FieldChanged(void)
@@ -368,7 +397,14 @@ void CSculptNodes::Linked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size 
 //////////////////////////////////////////////////////////////////////////
 void CSculptNodes::Unlinked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput)
 {
+	Ptr<CSculptValue>	pValue;
+
 	mpGraph->Unlink(GetNode(pcTo), uiInput);
+	pValue = FindValue(GetNode(pcTo), uiInput);
+	if (pValue.IsNotNull())
+	{
+		pValue->Show();  //The input has a new value of its own.
+	}
 	mcChanged.Call(this);
 }
 
