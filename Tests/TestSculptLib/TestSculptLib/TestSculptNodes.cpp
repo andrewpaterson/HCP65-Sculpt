@@ -726,12 +726,28 @@ void TestSculptNodesAddCopyRemove(void)
 		AssertInt(1, sChanges.iChanges);
 		AssertDouble(0.5, pNodes->FindValue(&pGraph->GetNode(1), 0)->GetNumber()->GetValue(), 6);
 
+		//A Combine added: a colour and four numbers, each its own value.
+		pNode = pNodes->AddNodeOf(TestSculptNodesShow("Combine"));
+		AssertSize(5, pGraph->NumInputs(&pNode));
+		AssertTrue(pNodes->FindValue(&pNode, 0)->GetColour().IsNotNull());
+		AssertTrue(pNodes->FindValue(&pNode, 1)->GetNumber().IsNotNull());
+		AssertTrue(pNodes->FindValue(&pNode, 4)->GetNumber().IsNotNull());
+		AssertString("Combine", pNodes->FindBox(&pNode)->GetTitle());
+		pNode = pNodes->AddNodeOf(TestSculptNodesShow("Separate"));
+		AssertSize(1, pGraph->NumInputs(&pNode));
+		AssertSize(10, pGraph->NumNodes());
+		pEditor->SelectNone();
+		pEditor->Select(pNodes->FindBox(&pNode), true);
+		pEditor->Select(pNodes->FindBox(&pGraph->GetNode(8)), true);
+		pNodes->DeleteSelected();
+		AssertSize(8, pGraph->NumNodes());
+
 		//Nothing selected, nothing's deleted or copied.
 		pEditor->SelectNone();
 		pNodes->DeleteSelected();
 		pNodes->DuplicateSelected();
 		AssertSize(8, pGraph->NumNodes());
-		AssertInt(1, sChanges.iChanges);
+		AssertInt(2, sChanges.iChanges);  //The two deletions.
 
 		pNodes->GetChangeEvent()->Remove(&sChanges);
 		pWarp = NULL;

@@ -216,6 +216,9 @@ The graph in Sculpt
     copied.  After a node is added, copied or removed the editor's boxes are made again from the graph (Rebuild),
     which keeps where they were.  Adding a node bakes nothing: the material is the same until it's linked in.
 17. CSolidChannel and CSolidCombine (Blender's Separate and Combine).
+    Done (ProceduralLib): CSolidChannel is one of a sample's eight numbers as a grey; CSolidCombine is a sample of
+    its colour input's colour and alpha and, for its height, shine, gloss and glow, the brightness of an input each.
+    Unlinked, a Combine's four are numbers on its node.  In the Add menu as Separate and Combine, under Converter.
 18. Undo and redo.
 Around it
 19. The shape and the bake's settings (samples, relief, the light) in a panel; what's shown (baked, one channel as

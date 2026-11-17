@@ -28,6 +28,8 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "ProceduralLib/SolidAdjust.h"
 #include "ProceduralLib/SolidBricks.h"
 #include "ProceduralLib/SolidCells.h"
+#include "ProceduralLib/SolidChannel.h"
+#include "ProceduralLib/SolidCombine.h"
 #include "ProceduralLib/SolidGradient.h"
 #include "ProceduralLib/SolidMask.h"
 #include "ProceduralLib/SolidMerge.h"
@@ -52,6 +54,8 @@ static Ptr<CSolidTexture> SolidMakeSlope(void) { return OMalloc<CSolidSlope>(); 
 static Ptr<CSolidTexture> SolidMakeAdjust(void) { return OMalloc<CSolidAdjust>(Ptr<CSolidTexture>()); }
 static Ptr<CSolidTexture> SolidMakeMerge(void) { return OMalloc<CSolidMerge>(SM_Multiply, Ptr<CSolidTexture>(), Ptr<CSolidTexture>()); }
 static Ptr<CSolidTexture> SolidMakeMask(void) { return OMalloc<CSolidMask>(Ptr<CSolidTexture>(), Ptr<CSolidTexture>(), Ptr<CSolidTexture>()); }
+static Ptr<CSolidTexture> SolidMakeChannel(void) { return OMalloc<CSolidChannel>(SCH_Height, Ptr<CSolidTexture>()); }
+static Ptr<CSolidTexture> SolidMakeCombine(void) { return OMalloc<CSolidCombine>(Ptr<CSolidTexture>(), Ptr<CSolidTexture>(), Ptr<CSolidTexture>(), Ptr<CSolidTexture>(), Ptr<CSolidTexture>()); }
 static Ptr<CSolidTexture> SolidMakeWarp(void) { return OMalloc<CSolidWarp>(Ptr<CSolidTexture>(), Ptr<CSolidTexture>(), 0.5f); }
 
 
@@ -87,6 +91,8 @@ SSolidNodeShow gasSolidNodeShow[] =
 	{ "CSolidSlope",	"Slope",				SNK_Texture,	SolidMakeSlope },
 	{ "CSolidCavity",	"Cavity",				SNK_Texture,	NULL },
 	{ "CSolidRamp",		"Color Ramp",			SNK_Converter,	SolidMakeRamp },
+	{ "CSolidChannel",	"Separate",				SNK_Converter,	SolidMakeChannel },
+	{ "CSolidCombine",	"Combine",				SNK_Converter,	SolidMakeCombine },
 	{ "CSolidAdjust",	"Hue/Saturation/Value",	SNK_Colour,		SolidMakeAdjust },
 	{ "CSolidMerge",	"Mix",					SNK_Colour,		SolidMakeMerge },
 	{ "CSolidMask",		"Mix by Mask",			SNK_Colour,		SolidMakeMask },
@@ -123,6 +129,11 @@ SSolidFieldShow gasSolidFieldShow[] =
 	{ "CSolidGradient",	"meFrom",		"From",			SFS_Enum,	0, 0, "Plane|Axis|Point" },
 	{ "CSolidGradient",	"meRepeat",		"Repeat",		SFS_Enum,	0, 0, "Once|Saw|Wave" },
 	{ "CSolidMerge",	"meMerge",		"Blend",		SFS_Enum,	0, 0, "Add|Multiply|Lesser|Greater|Difference" },
+	{ "CSolidChannel",	"meChannel",	"Channel",		SFS_Enum,	0, 0, "Red|Green|Blue|Alpha|Height|Shine|Gloss|Glow" },
+	{ "CSolidCombine",	"mpHeight",		"Height",		SFS_Range,	-1, 1, NULL },
+	{ "CSolidCombine",	"mpShine",		"Shine",		SFS_Range,	0, 1, NULL },
+	{ "CSolidCombine",	"mpGloss",		"Gloss",		SFS_Range,	0, 1, NULL },
+	{ "CSolidCombine",	"mpGlow",		"Glow",			SFS_Range,	0, 1, NULL },
 	{ "CSolidCells",	"meKind",		"Kind",			SFS_Enum,	0, 0, "Nearest|Edge|Cell" },
 	{ "CSolidBricks",	"meKind",		"Kind",			SFS_Enum,	0, 0, "Brick|Inside" },
 	{ "CSolidNoise",	"muiOctaves",	"Detail",		SFS_Range,	1, 12, NULL },
