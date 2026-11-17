@@ -26,6 +26,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "SupportLib/ShapeSmoothUnion.h"
 #include "ProceduralLib/SolidMaterials.h"
 #include "SupportLib/Sphere.h"
+#include "WindowLib/Window.h"
 #include "SculptPage.h"
 
 
@@ -47,6 +48,7 @@ void CSculptPage::Init(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColou
 	SetAlignment(CSH_Stretch, CSV_Stretch);
 	miSpheres = 0;
 	mbInScene = false;
+	mbCoarse = false;
 
 	mpStatus = OMalloc<CLabel>(pWindow, pFontColours->GetFont(psLook->pcTheme->GetColour(TC_Text)), "No spheres.");
 	mpStatus->SetAlignment(CSH_Left, CSV_Center);
@@ -101,17 +103,23 @@ void CSculptPage::Class(void)
 	M_Pointer(mpShape);
 	U_Int32(miSpheres);
 	U_Bool(mbInScene);
+	U_Bool(mbCoarse);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 // The view and the nodes may outlive the page (something else may hold
-// them), so it's no longer told of clicks and changes.
+// them), so it's no longer told of clicks and changes; nor is the whole
+// bake still to come.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::Free(void)
 {
+	if (mpWindow.IsNotNull())
+	{
+		mpWindow->CancelPosted(this);
+	}
 	if (mpView.IsNotNull())
 	{
 		mpView->GetClickEvent()->Remove(this);
@@ -182,17 +190,38 @@ static Ptr<CInstance> SculptInstance(Ptr<CMeshEditor> pEditor)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The editor's stack meshes mpShape again (Touch moves its modifier
-// counter, which the render scene makes a new mesh for), its instance is
-// in the scene while there are spheres, and the view is drawn again.
+// The editor's stack meshes mpShape again, its instance is in the scene
+// while there are spheres, and the view is drawn again: coarsely now and
+// finely once nothing more changes.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::Remesh(void)
 {
-	CChars	szName;
-
 	mpShapeEditor->mpShape = mpShape;
 	mpShapeNormals->mpShape = mpShape;
+	Rebake(true);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The stack makes its mesh again (Touch moves its modifier counter,
+// which the render scene makes a new mesh for), unwrapped and baked at
+// the coarse density or the whole one.  A coarse bake posts the whole
+// one for SCULPT_FINE_PAUSE from now, in place of any already posted.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::Rebake(bool bCoarse)
+{
+	CChars	szName;
+
+	mpWindow->CancelPosted(this);
+	mbCoarse = bCoarse;
+	if (mbCoarse)
+	{
+		mpWindow->PostAfter(SCULPT_FINE_PAUSE, this, &CSculptPage::BakeFine);
+	}
+	mpUnwrap->mfTexelsPerUnit = SCULPT_TEXELS_PER_UNIT * (mbCoarse ? SCULPT_COARSE_SHARE : 1.0f);
 	mpMesh->mcModifiers.Touch();
 	if ((miSpheres > 0) && !mbInScene)
 	{
@@ -261,7 +290,33 @@ void CSculptPage::SetMaterial(Ptr<CSolidTexture> pSurface)
 void CSculptPage::MaterialChanged(void)
 {
 	mpBake->mpTexture = mpNodes->GetGraph()->GetSurface();
-	Remesh();
+	Rebake(true);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What's shown is baked at the coarse density: the whole one is to come.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptPage::IsCoarse(void)
+{
+	return mbCoarse;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Nothing has changed for a while: what's shown is baked at the whole
+// density.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::BakeFine(void)
+{
+	if (mbCoarse)
+	{
+		Rebake(false);
+	}
 }
 
 

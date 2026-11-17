@@ -10,6 +10,7 @@
 
 void TestSculptGraph(void);
 void TestSculptNodes(void);
+void TestSculptBake(void);
 void TestSculptPage(void);
 
 
@@ -27,6 +28,7 @@ int __cdecl main(void)
 
 	TestSculptGraph();
 	TestSculptNodes();
+	TestSculptBake();
 	TestSculptPage();
 
 	DataIOKill();

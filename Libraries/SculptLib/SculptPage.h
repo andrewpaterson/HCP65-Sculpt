@@ -40,7 +40,9 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #define SCULPT_BLEND_RADIUS		0.5f	//How far the smooth union fills the seams between spheres.
 #define SCULPT_SMALLEST_CELL	0.05f	//The isosurface octree's cells, smallest
 #define SCULPT_LARGEST_CELL		0.8f	//and largest.
-#define SCULPT_TEXELS_PER_UNIT	128.0f	//The baked texture's density.
+#define SCULPT_TEXELS_PER_UNIT	128.0f	//The baked texture's density,
+#define SCULPT_COARSE_SHARE		0.25f	//and how much of it a change is first shown at: a sixteenth of the texels.
+#define SCULPT_FINE_PAUSE		330		//Milliseconds after the last change before it's baked at the whole density.
 #define SCULPT_MATERIAL_SEED		1		//The material it starts with is marble of this seed.
 #define SCULPT_VIEW_SHARE		550		//Of the page's height the view has, out of SPLIT_CONTAINER_WHOLE: the node editor has the rest.
 
@@ -53,6 +55,11 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //What's made is a shape of spheres meshed as one isosurface (ProceduralLib's CMeshShapeEditor on a CMeshEditor, its
 //normals from the shape by CMeshShapeNormals), unwrapped (CMeshUnwrap) and the material baked onto it (CMeshBake): the
 //graph's surface, baked again whenever the graph changes it.  The material starts as marble.
+//
+//A bake at the whole density is a quarter of a second to a second for a sphere (SculptPlan.txt, step 12), too long to
+//follow a number being dragged.  So a change, of the shape or of the material, is baked at once at a quarter of the
+//density, which is a sixteenth of the work, and at the whole density once nothing has changed for a third of a second
+//(the window's PostAfter).
 //Clicking the left button drops a sphere where the pointer is onto the plane of the screen, through what the view turns
 //about: at the start that's z = 0, the view looking along -z.  The spheres are joined by a smooth union, so they blend
 //where they meet.  Delete, or X, takes the spheres away.
@@ -76,6 +83,7 @@ protected:
 	Ptr<CShape>				mpShape;  //The spheres so far, NULL for none.
 	int32					miSpheres;
 	bool					mbInScene;  //The editor's instance is in the scene: it's added with the first sphere.
+	bool					mbCoarse;  //What's shown is baked at the coarse density, and the whole one is posted.
 
 public:
 	void				Init(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColours> pFontColours, bool bVulkan = true);
@@ -86,6 +94,8 @@ public:
 	Ptr<CSculptNodes>	GetNodes(void);
 	void				SetMaterial(Ptr<CSolidTexture> pSurface);
 	void				MaterialChanged(void);
+	bool				IsCoarse(void);
+	void				BakeFine(void);
 	bool				DropSphere(int32 x, int32 y);
 	void				Clear(void);
 	int32				NumSpheres(void);
@@ -96,6 +106,7 @@ public:
 protected:
 	void				MakeScene(void);
 	void				Remesh(void);
+	void				Rebake(bool bCoarse);
 };
 
 

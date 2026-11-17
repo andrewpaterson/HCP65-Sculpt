@@ -142,11 +142,18 @@ void TestSculptPageSpheres(void)
 		AssertInt(uiBackground, SculptTestViewPixel(pImage, sSize.x - 1, sSize.y - 1));
 		AssertTrue(SculptTestViewPixel(pImage, sSize.x / 2, sSize.y / 2) != uiBackground);
 
+		//The sphere was baked coarsely, the whole bake to come; with it done, nothing is.
+		pPage->BakeFine();
+		AssertFalse(pPage->IsCoarse());
+		pPage->BakeFine();
+		AssertFalse(pPage->IsCoarse());
+
 		//A click on the view drops another; a press that turns into a drag doesn't.
 		sEvent = TestSculptPageEvent(40, 30);
 		pView->PressAction(&sEvent);
 		pView->ReleaseAction(&sEvent);
 		AssertInt(2, pPage->NumSpheres());
+		AssertTrue(pPage->IsCoarse());
 
 		pView->PressAction(&sEvent);
 		sEvent = TestSculptPageEvent(80, 30);
@@ -161,6 +168,12 @@ void TestSculptPageSpheres(void)
 		pPage->SetMaterial(MakeSolidWood(1));
 		AssertTrue(pPage->GetNodes()->GetGraph()->GetNode(1)->mpTexture == pPage->GetNodes()->GetGraph()->GetSurface());
 		AssertString("Material Output", pPage->GetNodes()->GetEditor()->GetNode(0)->GetTitle());
+		AssertTrue(pPage->IsCoarse());
+
+		//A setting changed in a node bakes coarsely again.
+		pPage->BakeFine();
+		pPage->GetNodes()->FieldChanged();
+		AssertTrue(pPage->IsCoarse());
 
 		pImage = NULL;
 		pView = NULL;
