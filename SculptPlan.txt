@@ -132,6 +132,7 @@ The project
    only of a scene with animations.
 4. The isosurface out of WindowInputTester: the page, File's Isosurface, ProceduralLib from its CMake, project and
    solution.
+   Done.
 The node editor (WindowLib, with tests at each step)
 5. CNumberField: dragged, typed in, a range's bar, a bad number put back.
 6. CNodeEditor: nodes as boxes with a header and sockets from the interface; pan, zoom, Home.
