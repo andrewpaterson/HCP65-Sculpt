@@ -157,8 +157,16 @@ The node editor (WindowLib, with tests at each step)
    (there's no keyboard in one), so adding to the selection with it is untested.
 The graph in Sculpt
 8. Operators with an input missing: each input's own value (ProceduralLib; tests).
+   Done, by finding there was nothing to add to the operators: each already gives something with an input missing
+   (opaque black; a warp with nothing to warp by doesn't move its input; a cavity with no shape is a flat surface's
+   grey), which TestSolidOperatorsUnlinked now holds them all to.  An input's own value isn't a new field on every
+   operator: it's a flat texture (CSolidFlat) linked to the input, which Sculpt shows as the input's value on the node
+   and not as a node.  A saved material then has nothing in it but textures, and a program reading one needn't know
+   of values.
 9. What a texture works out once from its fields (a placement's axes, a gradient's direction): find each, and give
    CSolidTexture a Changed() the editor calls, so a field changed from outside is as one set at Init.
+   Done: CSolidTexture::Changed, virtual.  Three things are worked out from fields: a placement's axes (units at right
+   angles), a slope's direction (a unit) and a ramp's keys (in order of their values).  Nothing else is.
 10. CSculptNode and the interface over the solid textures; Material Output; the split window with a made material
     (marble) shown as nodes, laid out left to right by how far each is from the output.
 11. A node's rows from Class(): numbers, ticks, vectors; a change calls Changed() and bakes.
