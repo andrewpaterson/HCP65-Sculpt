@@ -209,6 +209,12 @@ The graph in Sculpt
     of its sample wherever its stop is dragged, a stop added is the ramp's whole sample there, and the chosen key's
     four other numbers are fields under the bar.
 16. Adding (Shift+A and the Add menu), removing, copying.
+    Done.  SolidShow's table says how a new texture of each class is made, for the Add menu (the app's menu bar has
+    one, and the editor's own opens under the pointer at Shift+A or the right button: the four kinds, the classes of
+    each under them) and for a copy (SolidCopy: the class's new texture given the old one's plain fields, its inputs
+    and, of a ramp, its keys).  A cavity is of a shape a node can't give it, so it's shown and neither added nor
+    copied.  After a node is added, copied or removed the editor's boxes are made again from the graph (Rebuild),
+    which keeps where they were.  Adding a node bakes nothing: the material is the same until it's linked in.
 17. CSolidChannel and CSolidCombine (Blender's Separate and Combine).
 18. Undo and redo.
 Around it

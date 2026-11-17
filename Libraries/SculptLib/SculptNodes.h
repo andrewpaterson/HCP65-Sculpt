@@ -22,6 +22,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #define __SCULPT_NODES_H__
 #include "StandardLib/Object.h"
 #include "WindowLib/ComponentEvent.h"
+#include "WindowLib/MenuContainer.h"
 #include "WindowLib/NodeEditor.h"
 #include "SculptField.h"
 #include "SculptGraph.h"
@@ -31,6 +32,17 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SCULPT_NODES_COLUMN_GAP		60	//Between a column of nodes and the next, when they're arranged.
 #define SCULPT_NODES_ROW_GAP		20	//Between a node and the one under it.
+#define SCULPT_NODES_COPY_OFFSET	30	//Right and down from a node to its copy.
+
+
+//An item of an Add menu, and which class of texture (SolidShow.h's table) it adds.
+struct SSculptAddItem
+{
+	CMenuItem*	pcItem;  //Its menu holds it.
+	size		uiShow;
+};
+
+typedef CArrayTemplate<SSculptAddItem>	CArraySculptAddItem;
 
 
 //A material's graph (CSculptGraph) in a node editor (WindowLib's CNodeEditor): a box for each of the graph's nodes and
@@ -45,6 +57,12 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //An input shows its own value while nothing is linked to it (CSculptValue): a colour, or a number for a factor.  A value
 //changed is the material's too.
 //
+//Nodes are added from an Add menu (MakeAddMenu), a menu of the kinds of node with the classes of each under it, as
+//Blender's is: the editor's own, which Shift+A (or the right button) opens under the pointer, and any other made, for
+//a menu bar say.  A node added is a new texture linked to nothing, where the pointer was or in the middle of the editor.
+//X or Delete removes the selected nodes (never the output), each input they fed having its own value again; Shift+D
+//copies them, a little to the right and down, the copies sharing the originals' inputs.
+//
 //A box's data is its node (the graph holds it).  Nodes that haven't been placed are arranged in columns by how far each
 //is from the output (CSculptGraph::GetDepth), the output on the right, as Blender's graphs read.
 class CSculptNodes : public CObject, public CNodeEditorListener
@@ -57,6 +75,10 @@ protected:
 	CArray<CSculptField>			mapFields;  //The settings the boxes show.
 	CArray<CSculptValue>			mapValues;  //The inputs' own values.
 	CArray<CSculptRamp>				mapRamps;  //The ramps' keys.
+	CArraySculptAddItem				masAddItems;  //Of every Add menu made.
+	Ptr<CMenuContainer>				mpAddMenu;  //The editor's context menu.
+	SInt32Vec2						msAddPosition;  //Where the next node added goes, in the editor's space.
+	bool							mbAddAtPointer;  //It's where Shift+A was pressed; otherwise the middle of the editor.
 	CComponentEvent<CSculptNodes>	mcChanged;
 
 public:
@@ -72,6 +94,11 @@ public:
 	Ptr<CNodeBox>					FindBox(CSculptNode* pcNode);
 	static CSculptNode*				GetNode(CNodeBox* pcBox);
 	void							Arrange(void);
+	void							Rebuild(void);
+
+	Ptr<CMenuContainer>				MakeAddMenu(void);
+	void							AddMenuItemClicked(CMenuItem* pcItem);
+	Ptr<CSculptNode>				AddNodeOf(size uiShow);
 	void							FieldChanged(void);
 	size							NumFields(void);
 	Ptr<CSculptField>				GetField(size uiIndex);
@@ -82,6 +109,9 @@ public:
 	void							Linked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;
 	void							Unlinked(CNodeBox* pcFrom, size uiOutput, CNodeBox* pcTo, size uiInput) override;
 	void							NodesMoved(void) override;
+	void							DeleteSelected(void) override;
+	void							DuplicateSelected(void) override;
+	void							AddNode(int32 x, int32 y) override;
 
 protected:
 	Ptr<CNodeBox>					MakeBox(Ptr<CSculptNode> pNode);

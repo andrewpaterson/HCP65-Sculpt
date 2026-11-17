@@ -88,10 +88,10 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 		msDialogLook.pcTheme = &mpTheme;
 		msDialogLook.pcDimFont = &mpFontColours->GetFont(mpTheme->GetColour(TC_Icon));
 
+		mpPage = OMalloc<CSculptPage>(mpWindow, &msDialogLook, mpFontColours);
 		MakeMenus();
 		mpMain = OMalloc<CGridContainer>(mpWindow);
 		mpMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
-		mpPage = OMalloc<CSculptPage>(mpWindow, &msDialogLook, mpFontColours);
 		mpMain->AddComponent(mpPage, 0, 1, 1, 1, 1, 1);
 		mpWindow->SetContainer(mpMain);
 
@@ -114,7 +114,9 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The menu bar along the top: File has Exit.
+// The menu bar along the top: File has Exit, and Add the nodes that can
+// be added to the material's graph (the page's nodes make it and take its
+// clicks).
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptApp::MakeMenus(void)
@@ -126,6 +128,7 @@ void CSculptApp::MakeMenus(void)
 	pFileMenu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
 	mpMenuBar->AddMenu("File", pFileMenu);
 	mpExit = pFileMenu->AddItem("Exit");
+	mpMenuBar->AddMenu("Add", mpPage->GetNodes()->MakeAddMenu());
 	mpMenuBar->GetItemClickEvent()->Add(this, &CSculptApp::MenuItemClicked);
 }
 

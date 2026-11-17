@@ -30,6 +30,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "ProceduralLib/SolidMaterials.h"
 #include "ProceduralLib/SolidRamp.h"
 #include "SculptLib/SculptNodes.h"
+#include "SculptLib/SolidShow.h"
 #include "SculptTestWindow.h"
 #include "TestLib/Assert.h"
 
@@ -581,6 +582,180 @@ void TestSculptNodesRamp(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The class of SolidShow's table titled szTitle.
+//
+//////////////////////////////////////////////////////////////////////////
+static size TestSculptNodesShow(const char* szTitle)
+{
+	size	i;
+
+	for (i = 0; i < NumSolidNodeShows(); i++)
+	{
+		if (strcmp(GetSolidNodeShow(i)->szTitle, szTitle) == 0)
+		{
+			return i;
+		}
+	}
+	return NumSolidNodeShows();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A node added is a new texture linked to nothing, selected, in the
+// middle of the editor, and bakes nothing until it's linked.  Selected
+// nodes are copied a little right and down, the copy with the original's
+// settings, inputs and keys, and its own value.  Deleted, what they fed
+// has its own value again; the output stays.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptNodesAddCopyRemove(void)
+{
+	ObjectsInit();
+	{
+		Ptr<CWinRefWindowFactory>	pFactory;
+		Ptr<CWindow>				pWindow;
+		Ptr<CFontColours>			pFontColours;
+		Ptr<CWindowTheme>			pTheme;
+		Ptr<CNodeEditor>			pEditor;
+		Ptr<CSculptNodes>			pNodes;
+		Ptr<CSculptGraph>			pGraph;
+		Ptr<CSculptNode>			pNode;
+		Ptr<CSculptNode>			pCopy;
+		Ptr<CSolidNoise>			pNoise;
+		Ptr<CSolidRamp>				pRamp;
+		Ptr<CSolidRamp>				pRampCopy;
+		Ptr<CSolidWarp>				pWarp;
+		Ptr<CMenuContainer>			pMenu;
+		SDialogLook					sLook;
+		STestSculptNodesChanges		sChanges;
+		SInt32Vec2					sPan;
+
+		pWindow = SculptTestWindow(pFactory, 1000, 600, TestSculptNodesTick, NULL);
+		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
+		pEditor = OMalloc<CNodeEditor>(pWindow, pTheme);
+		pWindow->SetContainer(pEditor);
+		pNodes = OMalloc<CSculptNodes>(pEditor);
+		sChanges.iChanges = 0;
+		pNodes->GetChangeEvent()->Add(&sChanges, &STestSculptNodesChanges::Changed);
+		pGraph = OMalloc<CSculptGraph>(MakeSolidMarble(3));
+		pNodes->SetGraph(pGraph);
+		pWindow->Layout();
+		sPan = pEditor->GetPan();
+
+		//The Add menu: the four kinds, each with its classes under it.
+		pMenu = pNodes->MakeAddMenu();
+		AssertSize(4, pMenu->NumItems());
+		pMenu = NULL;
+
+		//A noise added: in the middle of the editor, selected alone, linked to nothing, nothing baked, the view unmoved.
+		pNode = pNodes->AddNodeOf(TestSculptNodesShow("Noise Texture"));
+		pWindow->Layout();
+		AssertSize(6, pGraph->NumNodes());
+		AssertSize(6, pEditor->NumNodes());
+		AssertSize(4, pEditor->NumLinks());
+		pNoise = pNode->mpTexture;
+		AssertTrue(pNoise.IsNotNull());
+		AssertSize(4, pNoise->muiOctaves);
+		AssertTrue(pNode->mbPlaced);
+		AssertInt(500, pNodes->FindBox(&pNode)->GetPosition().x + NODE_BOX_WIDTH / 2);
+		AssertInt(300, pNodes->FindBox(&pNode)->GetPosition().y);
+		AssertTrue(pNodes->FindBox(&pNode)->IsSelected());
+		AssertSize(1, pEditor->NumSelected());
+		AssertInt(0, sChanges.iChanges);
+		AssertInt(sPan.x, pEditor->GetPan().x);
+		AssertSize(0, pGraph->GetDepth(&pNode));
+
+		//A class that isn't made new, and one there isn't, add nothing.
+		AssertTrue(pNodes->AddNodeOf(TestSculptNodesShow("Cavity")).IsNull());
+		AssertTrue(pNodes->AddNodeOf(NumSolidNodeShows()).IsNull());
+		AssertSize(6, pGraph->NumNodes());
+
+		//Shift+A at a place: what's then added goes there.
+		pNodes->AddNode(-40, 25);
+		pWindow->CloseAllPopups();
+		pNode = pNodes->AddNodeOf(TestSculptNodesShow("Mix"));
+		AssertInt(-40, pNode->msPosition.x);
+		AssertInt(25, pNode->msPosition.y);
+		AssertSize(2, pGraph->NumInputs(&pNode));
+		AssertTrue(CSculptGraph::IsValue(pGraph->GetInput(&pNode, 0)));
+		AssertSize(7, pEditor->NumNodes());
+
+		//The ramp and the warp copied: each a new texture as the old, fed by what fed it; the copies are the selected ones.
+		pRamp = pGraph->GetNode(1)->mpTexture;
+		pWarp = pGraph->GetNode(2)->mpTexture;
+		pEditor->SelectNone();
+		pEditor->Select(pNodes->FindBox(&pGraph->GetNode(1)), true);
+		pEditor->Select(pNodes->FindBox(&pGraph->GetNode(2)), true);
+		pEditor->Select(pEditor->GetNode(0), true);  //The output, which isn't copied.
+		pNodes->DuplicateSelected();
+		pWindow->Layout();
+		AssertSize(9, pGraph->NumNodes());
+		AssertSize(2, pEditor->NumSelected());
+		pCopy = pGraph->GetNode(7);
+		pRampCopy = pCopy->mpTexture;
+		AssertTrue(pRampCopy.IsNotNull());
+		AssertTrue(pRampCopy != pRamp);
+		AssertTrue(pRampCopy->mpInput == pRamp->mpInput);
+		AssertSize(pRamp->masKeys.NumElements(), pRampCopy->masKeys.NumElements());
+		AssertTrue(pRampCopy->masKeys.GetData() != pRamp->masKeys.GetData());
+		AssertFloat(pRamp->masKeys.Get(2)->sSample.sColour.x, pRampCopy->masKeys.Get(2)->sSample.sColour.x, 6);
+		AssertInt(pGraph->GetNode(1)->msPosition.x + SCULPT_NODES_COPY_OFFSET, pCopy->msPosition.x);
+		AssertInt(pGraph->GetNode(1)->msPosition.y + SCULPT_NODES_COPY_OFFSET, pCopy->msPosition.y);
+		AssertTrue(pNodes->FindBox(&pCopy)->IsSelected());
+		AssertFloat(pWarp->mfAmount, Ptr<CSolidWarp>(pGraph->GetNode(8)->mpTexture)->mfAmount, 6);
+		AssertTrue(Ptr<CSolidWarp>(pGraph->GetNode(8)->mpTexture)->mpWarp == pWarp->mpWarp);
+		AssertInt(0, sChanges.iChanges);
+
+		//The copy's keys are its own.
+		pRampCopy->masKeys.Get(2)->sSample.sColour.x = 0.123f;
+		AssertTrue(pRamp->masKeys.Get(2)->sSample.sColour.x != 0.123f);
+
+		//The warp deleted (with the output selected too, which stays): the ramp it fed has its own value, and it's baked.
+		pEditor->SelectNone();
+		pEditor->Select(pNodes->FindBox(&pGraph->GetNode(2)), true);
+		pEditor->Select(pEditor->GetNode(0), true);
+		pNodes->DeleteSelected();
+		pWindow->Layout();
+		AssertSize(8, pGraph->NumNodes());
+		AssertSize(8, pEditor->NumNodes());
+		AssertTrue(pGraph->GetNode(0)->IsOutput());
+		AssertTrue(CSculptGraph::IsValue(pRamp->mpInput));
+		AssertTrue(CSculptGraph::IsValue(pRampCopy->mpInput));
+		AssertTrue(pRamp->mpInput != pRampCopy->mpInput);
+		AssertInt(1, sChanges.iChanges);
+		AssertDouble(0.5, pNodes->FindValue(&pGraph->GetNode(1), 0)->GetNumber()->GetValue(), 6);
+
+		//Nothing selected, nothing's deleted or copied.
+		pEditor->SelectNone();
+		pNodes->DeleteSelected();
+		pNodes->DuplicateSelected();
+		AssertSize(8, pGraph->NumNodes());
+		AssertInt(1, sChanges.iChanges);
+
+		pNodes->GetChangeEvent()->Remove(&sChanges);
+		pWarp = NULL;
+		pRampCopy = NULL;
+		pRamp = NULL;
+		pNoise = NULL;
+		pCopy = NULL;
+		pNode = NULL;
+		pGraph = NULL;
+		pNodes = NULL;
+		pEditor = NULL;
+		sLook.Kill();
+		pTheme = NULL;
+		pFontColours = NULL;
+		SculptTestWindowDone(pWindow, pFactory);
+	}
+	AssertTrue(ORoot()->RemoveAll());
+	ObjectsFlush();
+	ObjectsKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestSculptNodes(void)
@@ -590,6 +765,7 @@ void TestSculptNodes(void)
 	TestSculptNodesMarble();
 	TestSculptNodesSettings();
 	TestSculptNodesRamp();
+	TestSculptNodesAddCopyRemove();
 
 	TestStatistics();
 }

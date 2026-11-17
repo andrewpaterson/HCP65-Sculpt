@@ -49,13 +49,19 @@ enum ESolidFieldShow
 };
 
 
-//How a class of solid texture is shown as a node: what it's called (Blender's name where it has the same thing) and its
-//kind.  A class with no entry is called by its class's name less "CSolid", and is a texture.
+//A new texture of a class, as a node added in the editor starts.
+typedef Ptr<CSolidTexture> (*SolidMakeFunc)(void);
+
+
+//How a class of solid texture is shown as a node: what it's called (Blender's name where it has the same thing), its
+//kind, and how a new one is made, for the Add menu and for copying a node (NULL: it's neither added nor copied).  A
+//class with no entry is called by its class's name less "CSolid", and is a texture.
 struct SSolidNodeShow
 {
 	const char*		szClass;
 	const char*		szTitle;
 	ESolidNodeKind	eKind;
+	SolidMakeFunc	fMake;
 };
 
 
@@ -75,6 +81,9 @@ struct SSolidFieldShow
 #define SOLID_SOCKET_COLOUR		Set32BitColour((uint8)199, (uint8)199, (uint8)41)	//A sample's, as Blender's colour sockets are.
 
 
+size				NumSolidNodeShows(void);
+SSolidNodeShow*		GetSolidNodeShow(size uiIndex);
+Ptr<CSolidTexture>	SolidCopy(CSolidTexture* pcTexture);
 void				SolidNodeTitle(CChars* pszDest, CSolidTexture* pcTexture);
 ESolidNodeKind		SolidNodeKind(CSolidTexture* pcTexture);
 const char*			SolidNodeKindName(ESolidNodeKind eKind);

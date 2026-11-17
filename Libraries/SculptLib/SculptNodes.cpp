@@ -37,8 +37,13 @@ void CSculptNodes::Init(Ptr<CNodeEditor> pEditor)
 	mapFields.Init();
 	mapValues.Init();
 	mapRamps.Init();
+	masAddItems.Init();
+	msAddPosition.Init(0, 0);
+	mbAddAtPointer = false;
 	mcChanged.Init();
 	mpEditor->SetListener(this);
+	mpAddMenu = MakeAddMenu();
+	mpEditor->SetContextMenu(mpAddMenu);
 
 	PostInit();
 }
@@ -55,6 +60,10 @@ void CSculptNodes::Class(void)
 	M_Embedded(mapFields);
 	M_Embedded(mapValues);
 	M_Embedded(mapRamps);
+	U_Unknown(CArraySculptAddItem, masAddItems);
+	M_Pointer(mpAddMenu);
+	U_2Int32(msAddPosition);
+	U_Bool(mbAddAtPointer);
 	U_Unknown(CComponentEvent<CSculptNodes>, mcChanged);
 }
 
@@ -69,7 +78,9 @@ void CSculptNodes::Free(void)
 	if (mpEditor.IsNotNull())
 	{
 		mpEditor->SetListener(NULL);
+		mpEditor->SetContextMenu(Ptr<CMenuContainer>());
 	}
+	masAddItems.Kill();
 	mcChanged.Kill();
 }
 
@@ -90,13 +101,27 @@ Ptr<CSculptField> CSculptNodes::GetField(size uiIndex) { return mapFields.Get(ui
 //////////////////////////////////////////////////////////////////////////
 void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 {
+	mpGraph = pGraph;
+	Rebuild();
+	mpEditor->FrameAll();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The editor's boxes and links are made again from the graph, which has
+// more or fewer nodes: each where its node is, those not yet placed
+// arranged.  The view isn't moved.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::Rebuild(void)
+{
 	size	i;
 
 	mpEditor->RemoveAllNodes();
 	mapFields.RemoveAll();
 	mapValues.RemoveAll();
 	mapRamps.RemoveAll();
-	mpGraph = pGraph;
 	if (mpGraph.IsNull())
 	{
 		return;
@@ -107,7 +132,6 @@ void CSculptNodes::SetGraph(Ptr<CSculptGraph> pGraph)
 	}
 	MakeLinks();
 	Arrange();
-	mpEditor->FrameAll();
 }
 
 
@@ -463,5 +487,192 @@ void CSculptNodes::NodesMoved(void)
 		sPosition = pBox->GetNodePosition();
 		GetNode(&pBox)->Place(sPosition.x, sPosition.y);
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A menu of the kinds of node, each with the classes of that kind that
+// can be made new under it.  Its items add a node (AddMenuItemClicked).
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CMenuContainer> CSculptNodes::MakeAddMenu(void)
+{
+	Ptr<CMenuContainer>		pMenu;
+	Ptr<CMenuContainer>		pKindMenu;
+	SSolidNodeShow*			psShow;
+	SSculptAddItem*			psItem;
+	size					uiKind;
+	size					i;
+
+	pMenu = OMalloc<CMenuContainer>(mpEditor->GetWindow(), mpEditor->GetTheme());
+	for (uiKind = 0; uiKind < SNK_Output; uiKind++)
+	{
+		pKindMenu = OMalloc<CMenuContainer>(mpEditor->GetWindow(), mpEditor->GetTheme());
+		for (i = 0; i < NumSolidNodeShows(); i++)
+		{
+			psShow = GetSolidNodeShow(i);
+			if (((size)psShow->eKind == uiKind) && (psShow->fMake != NULL))
+			{
+				psItem = masAddItems.Add();
+				psItem->pcItem = &pKindMenu->AddItem(psShow->szTitle);
+				psItem->uiShow = i;
+			}
+		}
+		pKindMenu->GetItemClickEvent()->Add(this, &CSculptNodes::AddMenuItemClicked);
+		pMenu->AddItem(SolidNodeKindName((ESolidNodeKind)uiKind), NULL, pKindMenu);
+	}
+	return pMenu;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// An Add menu's item was clicked: its class's node is added.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::AddMenuItemClicked(CMenuItem* pcItem)
+{
+	size	i;
+
+	for (i = 0; i < masAddItems.NumElements(); i++)
+	{
+		if (masAddItems.Get(i)->pcItem == pcItem)
+		{
+			AddNodeOf(masAddItems.Get(i)->uiShow);
+			return;
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A new texture of the uiShow'th class in SolidShow.h's table, as a node
+// linked to nothing: where Shift+A was pressed, or in the middle of the
+// editor.  NULL for a class that isn't made new.  Nothing is baked: the
+// material is as it was until the node's linked into it.
+//
+//////////////////////////////////////////////////////////////////////////
+Ptr<CSculptNode> CSculptNodes::AddNodeOf(size uiShow)
+{
+	Ptr<CSculptNode>	pNode;
+	SSolidNodeShow*		psShow;
+	SInt32Vec2			sSize;
+	SInt32Vec2			sPan;
+
+	psShow = (uiShow < NumSolidNodeShows()) ? GetSolidNodeShow(uiShow) : NULL;
+	if (mpGraph.IsNull() || (psShow == NULL) || (psShow->fMake == NULL))
+	{
+		return NULL;
+	}
+	if (!mbAddAtPointer)
+	{
+		sSize = mpEditor->GetActualSize();
+		sPan = mpEditor->GetPan();
+		msAddPosition.Init(sSize.x / 2 - sPan.x - NODE_BOX_WIDTH / 2, sSize.y / 2 - sPan.y);
+	}
+	mbAddAtPointer = false;
+
+	pNode = mpGraph->AddNode(psShow->fMake());
+	pNode->Place(msAddPosition.x, msAddPosition.y);
+	Rebuild();
+	mpEditor->Select(FindBox(&pNode), false);
+	return pNode;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Shift+A at x, y in the editor's space: the Add menu opens under the
+// pointer, and what's chosen from it goes there.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::AddNode(int32 x, int32 y)
+{
+	SInt32Vec2	sEditor;
+	SInt32Vec2	sPan;
+
+	msAddPosition.Init(x, y);
+	mbAddAtPointer = true;
+	sEditor = mpEditor->GetPosition();
+	sPan = mpEditor->GetPan();
+	mpEditor->OpenContextMenu(SInt32Vec2(sEditor.x + sPan.x + x, sEditor.y + sPan.y + y));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The selected nodes go, but for the output: every input they fed has
+// its own value again, and the material is baked if it changed.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::DeleteSelected(void)
+{
+	Ptr<CNodeBox>		pBox;
+	Ptr<CSculptNode>	pNode;
+	bool				bRemoved;
+	size				i;
+
+	bRemoved = false;
+	for (i = 0; i < mpEditor->NumNodes(); i++)
+	{
+		pBox = mpEditor->GetNode(i);
+		pNode = GetNode(&pBox);
+		if (pBox->IsSelected() && mpGraph->RemoveNode(pNode))
+		{
+			bRemoved = true;
+		}
+	}
+	if (bRemoved)
+	{
+		Rebuild();
+		mcChanged.Call(this);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A copy of each selected node whose class can be made new, a little
+// right and down of it, fed by what feeds it.  The copies are then the
+// selected nodes.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptNodes::DuplicateSelected(void)
+{
+	CArrayTemplate<CSculptNode*>	apcCopies;  //The graph holds them.
+	Ptr<CNodeBox>		pBox;
+	Ptr<CSculptNode>	pNode;
+	Ptr<CSculptNode>	pCopy;
+	Ptr<CSolidTexture>	pTexture;
+	size				i;
+
+	apcCopies.Init();
+	for (i = 0; i < mpEditor->NumNodes(); i++)
+	{
+		pBox = mpEditor->GetNode(i);
+		pNode = GetNode(&pBox);
+		if (pBox->IsSelected() && !pNode->IsOutput())
+		{
+			pTexture = SolidCopy(&pNode->mpTexture);
+			if (pTexture.IsNotNull())
+			{
+				pCopy = mpGraph->AddNode(pTexture);
+				pCopy->Place(pNode->msPosition.x + SCULPT_NODES_COPY_OFFSET, pNode->msPosition.y + SCULPT_NODES_COPY_OFFSET);
+				*apcCopies.Add() = &pCopy;
+			}
+		}
+	}
+	if (apcCopies.NumElements() > 0)
+	{
+		Rebuild();
+		mpEditor->SelectNone();
+		for (i = 0; i < apcCopies.NumElements(); i++)
+		{
+			mpEditor->Select(FindBox(*apcCopies.Get(i)), true);
+		}
+	}
+	apcCopies.Kill();
 }
 
