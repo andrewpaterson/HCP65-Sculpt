@@ -5,33 +5,33 @@ VisualStudioVersion = 16.0.31402.337
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HCP65Sculpt", "HCP65Sculpt\HCP65Sculpt.vcxproj", "{59BB24D5-228E-4EEC-A16D-C7570BD043A4}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseLib", "..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj", "{E25D2DAC-0E80-42B2-8FA7-99B837CF7588}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BaseLib", "..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj", "{E25D2DAC-0E80-42B2-8FA7-99B837CF7588}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InputLib", "..\..\..\CommonLibraries\Libraries\InputLib\InputLib.vcxproj", "{2F64AA34-F1CC-43FE-90EE-90E66824EE55}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InputLib", "..\..\CommonLibraries\Libraries\InputLib\InputLib.vcxproj", "{2F64AA34-F1CC-43FE-90EE-90E66824EE55}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StandardLib", "..\..\..\CommonLibraries\Libraries\StandardLib\StandardLib.vcxproj", "{2CFA23FA-6565-4744-8B75-9790B21CC0E5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "StandardLib", "..\..\CommonLibraries\Libraries\StandardLib\StandardLib.vcxproj", "{2CFA23FA-6565-4744-8B75-9790B21CC0E5}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProceduralLib", "..\..\..\CommonLibraries\Libraries\ProceduralLib\ProceduralLib.vcxproj", "{9878AEFF-411B-415E-995B-BA59059726E1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProceduralLib", "..\..\CommonLibraries\Libraries\ProceduralLib\ProceduralLib.vcxproj", "{9878AEFF-411B-415E-995B-BA59059726E1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RasterLib", "..\..\..\CommonLibraries\Libraries\RasterLib\RasterLib.vcxproj", "{2E428E10-C931-4778-B914-FF2E90163DE5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RasterLib", "..\..\CommonLibraries\Libraries\RasterLib\RasterLib.vcxproj", "{2E428E10-C931-4778-B914-FF2E90163DE5}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RasterRenderLib", "..\..\..\CommonLibraries\Libraries\RasterRenderLib\RasterRenderLib.vcxproj", "{8C1E5B47-3A9D-4F62-B0E4-71D2A6C93F58}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RasterRenderLib", "..\..\CommonLibraries\Libraries\RasterRenderLib\RasterRenderLib.vcxproj", "{8C1E5B47-3A9D-4F62-B0E4-71D2A6C93F58}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RenderLib", "..\..\..\CommonLibraries\Libraries\RenderLib\RenderLib.vcxproj", "{B3F6D2A8-5C41-4E97-9A0D-2E8C7B154F63}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RenderLib", "..\..\CommonLibraries\Libraries\RenderLib\RenderLib.vcxproj", "{B3F6D2A8-5C41-4E97-9A0D-2E8C7B154F63}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VulkanLib", "..\..\..\CommonLibraries\Libraries\VulkanLib\VulkanLib.vcxproj", "{6F1C2E9A-4B7D-4C3E-9A51-0D8E7B2F4C16}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VulkanLib", "..\..\CommonLibraries\Libraries\VulkanLib\VulkanLib.vcxproj", "{6F1C2E9A-4B7D-4C3E-9A51-0D8E7B2F4C16}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SceneViewLib", "..\..\..\CommonLibraries\Libraries\SceneViewLib\SceneViewLib.vcxproj", "{2F25A079-28EB-45D5-8FA2-D9B37574CF14}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SceneViewLib", "..\..\CommonLibraries\Libraries\SceneViewLib\SceneViewLib.vcxproj", "{2F25A079-28EB-45D5-8FA2-D9B37574CF14}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SculptLib", "..\Libraries\SculptLib\SculptLib.vcxproj", "{E262449F-EA8D-4BAB-B5DB-331976595327}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SupportLib", "..\..\..\CommonLibraries\Libraries\SupportLib\SupportLib.vcxproj", "{221022F1-B103-456A-8F55-721F33F2E26D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SupportLib", "..\..\CommonLibraries\Libraries\SupportLib\SupportLib.vcxproj", "{221022F1-B103-456A-8F55-721F33F2E26D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinInputLib", "..\..\..\CommonLibraries\Libraries\WinInputLib\WinInputLib.vcxproj", "{EFE4D8A4-D7F4-4BA2-9F43-0E3BC02268C2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinInputLib", "..\..\CommonLibraries\Libraries\WinInputLib\WinInputLib.vcxproj", "{EFE4D8A4-D7F4-4BA2-9F43-0E3BC02268C2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowLib", "..\..\..\CommonLibraries\Libraries\WindowLib\WindowLib.vcxproj", "{B5D4C7AA-49EF-45D2-B970-0AB1F1184AE6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowLib", "..\..\CommonLibraries\Libraries\WindowLib\WindowLib.vcxproj", "{B5D4C7AA-49EF-45D2-B970-0AB1F1184AE6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinGdiLib", "..\..\..\CommonLibraries\Libraries\WinGdiLib\WinGdiLib.vcxproj", "{D42E3A40-2620-4520-BEA0-CE1F3E064E08}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WinGdiLib", "..\..\CommonLibraries\Libraries\WinGdiLib\WinGdiLib.vcxproj", "{D42E3A40-2620-4520-BEA0-CE1F3E064E08}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
