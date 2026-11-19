@@ -348,7 +348,10 @@ Questions for the user (kept as they come up; work carries on with the answer as
      wake a window.  Is that to be built instead?  [Answered 2026-11-19: no, it's fine as it is.]
   9. The frame that first shows a newly made mesh is still about 13 ms: the mesh is cooked and given to the
      renderer on the window's thread (CRenderScene).  The baker's thread could cook it, which is a change in
-     RenderLib.  Wanted?  [Not answered yet; it's left as it is.]
+     RenderLib.  Wanted?  [Answered 2026-11-19: yes, as Sculpt's scenes will get larger.  Done: the baker's thread
+     cooks the mesh (CSculptBake::mpCooked) and the page gives it to the view (CSceneCanvasDraw::SetCooked); with
+     Vulkan only the copy to the graphics card is left to the window's thread.  A sphere's mesh is too small for it
+     to show yet: the longest frame is as it was, 14 to 16 ms.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.

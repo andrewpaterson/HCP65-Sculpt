@@ -26,6 +26,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "SupportLib/MeshEditor.h"
 #include "SupportLib/Shape.h"
 #include "SupportLib/SolidTexture.h"
+#include "RenderLib/CookedMesh.h"
 
 
 #define SCULPT_SMALLEST_CELL	0.05f	//The isosurface octree's cells, smallest
@@ -50,7 +51,9 @@ enum ESculptBakeState
 //Make makes its mesh on the thread that calls it, in that thread's object system: a worker's (StandardLib's
 //ObjectsWorker.h), whose mesh the main object system then adopts, is how a CSculptBaker makes one without the page's
 //thread waiting.  For that the shape and the texture must be ones nothing changes while it's made: the page gives a
-//copy of its material's graph.  mpMesh is the mesh once the state is SBS_Baked.
+//copy of its material's graph.  mpMesh is the mesh once the state is SBS_Baked, and mpCooked the mesh cooked as a
+//renderer wants it (RenderLib's CCookedMesh), which a baker's thread does too so that the thread which draws needn't
+//(CRenderScene::SetCooked).
 //
 //Stop, from another thread while it's made, has Make give up as soon as the bake notices (CMeshBake::SetStop, which
 //is most of a bake at the whole density): it is then SBS_Dropped, with no mesh.
@@ -70,6 +73,7 @@ public:
 	SFloat32Vec3		msLight;  //A unit.
 	bool				mbCoarse;  //At less than the whole density, to show a change as it's made: the page's to know.
 	Ptr<CMesh>			mpMesh;
+	Ptr<CCookedMesh>	mpCooked;
 
 protected:
 	int32				miState;

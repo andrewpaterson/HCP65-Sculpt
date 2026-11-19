@@ -43,6 +43,7 @@ void CSculptBake::Init(Ptr<CShape> pShape, Ptr<CSolidTexture> pTexture, float32 
 	msLight = *psLight;
 	mbCoarse = bCoarse;
 	mpMesh = NULL;
+	mpCooked = NULL;
 	miState = SBS_Described;
 	miStop = 0;
 	PostInit();
@@ -63,6 +64,7 @@ void CSculptBake::Class(void)
 	U_3Float32(msLight);
 	U_Bool(mbCoarse);
 	M_Pointer(mpMesh);
+	M_Pointer(mpCooked);
 	U_Int32(miState);
 	U_Int32(miStop);
 }
@@ -124,8 +126,8 @@ void CSculptBake::Apply(CMeshEditor* pcEditor)
 // go of.  On a worker the stack and what it makes on the way are the
 // worker's objects, freed there; the mesh, with its material and images,
 // is adopted by the main object system before this, a main object, is
-// pointed at it.  Stopped, what the stack made isn't whole and goes with
-// the stack.
+// pointed at it, and so is the mesh cooked.  Stopped, what the stack made
+// isn't whole and goes with the stack.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptBake::Make(CJobs* pcJobs)
@@ -133,6 +135,7 @@ void CSculptBake::Make(CJobs* pcJobs)
 	Ptr<CMeshEditor>	pEditor;
 	Ptr<CMeshBake>		pBake;
 	Ptr<CMesh>			pMesh;
+	Ptr<CCookedMesh>	pCooked;
 
 	pEditor = MakeEditor();
 	Apply(&pEditor);
@@ -146,11 +149,15 @@ void CSculptBake::Make(CJobs* pcJobs)
 		return;
 	}
 
-	if ((ObjectsOwn() != NULL) && !ObjectsAdopt(pMesh))
+	pCooked = OMalloc<CCookedMesh>();
+	pCooked->Cook(&pMesh);
+	if ((ObjectsOwn() != NULL) && (!ObjectsAdopt(pMesh) || !ObjectsAdopt(pCooked)))
 	{
 		pMesh = NULL;  //Adopt has said why.  A main object can't point at a worker's.
+		pCooked = NULL;
 	}
 	mpMesh = pMesh;
+	mpCooked = pCooked;
 	SetState(SBS_Baked);
 }
 

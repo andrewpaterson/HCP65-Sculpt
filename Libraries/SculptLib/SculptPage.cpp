@@ -350,7 +350,8 @@ void CSculptPage::Rebake(bool bCoarse)
 //////////////////////////////////////////////////////////////////////////
 //
 // The newest bake the baker has made is shown: its mesh is the stack's
-// output, as if the stack had made it.  That bake and those before it are
+// output, as if the stack had made it, and the view is given it cooked,
+// as the baker's thread cooked it.  That bake and those before it are
 // done with, as are any the baker dropped.  While there are others still
 // to be made this is posted again.
 //
@@ -370,6 +371,7 @@ void CSculptPage::ShowBaked(void)
 			if (pBake->mpMesh.IsNotNull())
 			{
 				mpMesh->SetOutput(pBake->mpMesh);
+				mpView->GetDraw()->SetCooked(mpMesh, pBake->mpCooked);
 				Show(true, pBake->mbCoarse);
 			}
 			uiDone = i;
