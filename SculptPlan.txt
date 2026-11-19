@@ -339,6 +339,16 @@ Questions for the user (kept as they come up; work carries on with the answer as
      the 1.7 s to a fraction of a second, though that's a guess until it's built.  The cost is threads in SupportLib's
      bake, with care that no Ptr is copied on them.  [Answered 2026-11-17 by asking for the thread safety plan's
      step 17: yes.  Done: Outstanding, 1.]
+  6. With the baker (Outstanding, 1) the app runs with the objects' locking on all the time: a pointer's copy on the
+     window's thread is about 25 ns for 12.  HCP65_SCULPT_NO_BAKER turns the baker and the locking off.  Is the baker
+     to be on unless that's set?  [Answered 2026-11-19: yes.]
+  7. For the baker a cavity is copied with the rest of a graph, so Duplicate copies a Cavity node (it was passed
+     over) and Undo puts back a cavity's reach (it didn't).  Wanted?  [Answered 2026-11-19: yes.]
+  8. The page looks for a made bake every 2 ms while one is being made, as nothing in WindowLib lets another thread
+     wake a window.  Is that to be built instead?  [Answered 2026-11-19: no, it's fine as it is.]
+  9. The frame that first shows a newly made mesh is still about 13 ms: the mesh is cooked and given to the
+     renderer on the window's thread (CRenderScene).  The baker's thread could cook it, which is a change in
+     RenderLib.  Wanted?  [Not answered yet; it's left as it is.]
 
 Not in it: groups of nodes, frames and reroutes, a colour wheel, muting and collapsing nodes, and any sculpting beyond
 dropping spheres.
