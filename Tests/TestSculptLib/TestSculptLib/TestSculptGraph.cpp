@@ -20,6 +20,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 ** ------------------------------------------------------------------------ **/
 #include "BaseLib/GlobalDataTypesIO.h"
 #include "StandardLib/Objects.h"
+#include "SupportLib/Sphere.h"
 #include "ProceduralLib/SolidFlat.h"
 #include "ProceduralLib/SolidGradient.h"
 #include "ProceduralLib/SolidMaterials.h"
@@ -279,6 +280,43 @@ void TestSculptGraphLinks(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A cavity is copied too, though a node can't make one new: the copy is
+// of the same shape with the same reach, and its reach changed leaves the
+// graph's as it was (which an undo, and a bake on another thread, are
+// kept copies for).
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptGraphCopyCavity(void)
+{
+	Ptr<CSculptGraph>	pGraph;
+	Ptr<CSculptGraph>	pCopy;
+	Ptr<CSphere>		pSphere;
+	Ptr<CSolidCavity>	pCavity;
+	Ptr<CSolidCavity>	pCavityCopy;
+	SFloat32Vec3		sCentre;
+
+	sCentre.Init(0, 0, 0);
+	pSphere = OMalloc<CSphere>(&sCentre, 1.0f);
+	pCavity = OMalloc<CSolidCavity>(pSphere, 0.15f);
+	pGraph = OMalloc<CSculptGraph>(pCavity);
+	AssertSize(2, pGraph->NumNodes());
+
+	pCopy = pGraph->Copy();
+	AssertSize(2, pCopy->NumNodes());
+	pCavityCopy = pCopy->GetSurface();
+	AssertTrue(pCavityCopy.IsNotNull());
+	AssertTrue(pCavityCopy != pCavity);
+	AssertString("CSolidCavity", pCavityCopy->GetClass()->GetName());
+	AssertTrue(pCavityCopy->mpShape == pSphere);
+	AssertFloat(0.15f, pCavityCopy->mfReach, 6);
+
+	pCavityCopy->mfReach = 0.5f;
+	AssertFloat(0.15f, pCavity->mfReach, 6);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A copy is other textures that are as the graph's and linked as they
 // are, its nodes where the graph's are; changing one changes nothing of
 // the other.
@@ -347,6 +385,7 @@ void TestSculptGraph(void)
 	TestSculptGraphMarble();
 	TestSculptGraphLinks();
 	TestSculptGraphCopy();
+	TestSculptGraphCopyCavity();
 
 	ObjectsDiscard();
 	ObjectsKill(false);

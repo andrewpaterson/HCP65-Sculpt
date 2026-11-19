@@ -27,6 +27,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "SupportLib/SolidChecker.h"
 #include "ProceduralLib/SolidAdjust.h"
 #include "ProceduralLib/SolidBricks.h"
+#include "ProceduralLib/SolidCavity.h"
 #include "ProceduralLib/SolidCells.h"
 #include "ProceduralLib/SolidChannel.h"
 #include "ProceduralLib/SolidCombine.h"
@@ -292,7 +293,9 @@ static bool SolidFieldIsPlain(CUnmanagedField* pcField)
 //
 // Another texture as pcTexture is: its class's new texture given
 // pcTexture's plain fields, its inputs (which the two then share) and, of
-// a ramp, its keys.  NULL for a class that isn't made new (SSolidNodeShow).
+// a ramp, its keys.  A cavity, which a node can't make new for want of a
+// shape, is copied all the same: the copy's shape is pcTexture's.  NULL
+// for a class that isn't shown (SSolidNodeShow).
 //
 //////////////////////////////////////////////////////////////////////////
 Ptr<CSolidTexture> SolidCopy(CSolidTexture* pcTexture)
@@ -306,11 +309,22 @@ Ptr<CSolidTexture> SolidCopy(CSolidTexture* pcTexture)
 	size				i;
 
 	psShow = FindSolidNodeShow(pcTexture);
-	if ((psShow == NULL) || (psShow->fMake == NULL))
+	if (psShow == NULL)
 	{
 		return NULL;
 	}
-	pCopy = psShow->fMake();
+	if (psShow->fMake != NULL)
+	{
+		pCopy = psShow->fMake();
+	}
+	else if (dynamic_cast<CSolidCavity*>(pcTexture) != NULL)
+	{
+		pCopy = OMalloc<CSolidCavity>(Ptr<CShape>(), 0.0f);
+	}
+	else
+	{
+		return NULL;
+	}
 
 	papcFields = pcTexture->GetClass()->GetUnmanagedFields();
 	for (i = 0; i < papcFields->NumElements(); i++)

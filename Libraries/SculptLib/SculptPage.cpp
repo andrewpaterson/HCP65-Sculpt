@@ -84,8 +84,9 @@ void CSculptPage::Init(Ptr<CWindow> pWindow, SDialogLook* psLook, Ptr<CFontColou
 	AddComponent(mpSplit, 0, 2, 1, 1, 1, 1);
 	AddComponent(mpPanel, 1, 2, 1, 1, 0, 1);
 
+	mapBakes.Init();
 	MakeScene();
-	mpPanel->SetBake(mpBake->miSamples, mpBake->mfRelief, &mpBake->msLight);
+	mpPanel->SetBake(GetBake()->miSamples, GetBake()->mfRelief, &GetBake()->msLight);
 	SetMaterial(MakeSolidMarble(SCULPT_MATERIAL_SEED));
 
 	PostInit();
@@ -109,11 +110,9 @@ void CSculptPage::Class(void)
 	M_Pointer(mpPanel);
 	M_Pointer(mpScene);
 	M_Pointer(mpMesh);
-	M_Pointer(mpShapeEditor);
-	M_Pointer(mpShapeNormals);
-	M_Pointer(mpUnwrap);
-	M_Pointer(mpBake);
 	M_Pointer(mpSculpted);
+	M_Pointer(mpBaker);
+	M_Embedded(mapBakes);
 	U_Int32(miSpheres);
 	U_Bool(mbInScene);
 	U_Bool(mbCoarse);
@@ -124,7 +123,8 @@ void CSculptPage::Class(void)
 //
 // The view and the nodes may outlive the page (something else may hold
 // them), so it's no longer told of clicks and changes; nor is the whole
-// bake still to come.
+// bake still to come.  A baker finishes what it was given without the
+// page: it holds the bakes itself.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::Free(void)
@@ -153,10 +153,9 @@ void CSculptPage::Free(void)
 //
 // A camera ten from the origin along z, looking back along -z, so the
 // plane of the screen starts as z = 0, and an editor whose stack meshes
-// the spheres, gives them the shape's normals (so they're smooth),
-// unwraps them and bakes the material onto them (SetMaterial gives it
-// one).  The editor's instance goes in with the first sphere: until
-// then there's nothing to draw.
+// the shape and bakes the material onto it (CSculptBake::MakeEditor;
+// SetMaterial gives it a material).  The editor's instance goes in with
+// the first shape: until then there's nothing to draw.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptPage::MakeScene(void)
@@ -172,11 +171,7 @@ void CSculptPage::MakeScene(void)
 	pCamera->mpConnection->msLocalMatrix = pCamera->mpConnection->msWorldMatrix;
 	mpScene->mapCameras.Add(pCamera);
 
-	mpMesh = OMalloc<CMeshEditor>(OMalloc<CMesh>());
-	mpShapeEditor = mpMesh->AddModifier<CMeshShapeEditor>(Ptr<CShape>(), SCULPT_SMALLEST_CELL, SCULPT_LARGEST_CELL);
-	mpShapeNormals = mpMesh->AddModifier<CMeshShapeNormals>(Ptr<CShape>());
-	mpUnwrap = mpMesh->AddModifier<CMeshUnwrap>(SCULPT_TEXELS_PER_UNIT);
-	mpBake = mpMesh->AddModifier<CMeshBake>(Ptr<CSolidTexture>());
+	mpMesh = CSculptBake::MakeEditor();
 
 	mpView->GetDraw()->SetScene(mpScene, "Sculpt: no spheres");
 }
@@ -263,15 +258,12 @@ Ptr<CShape> CSculptPage::GetShape(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// What's baked: the material's surface, or for one of its channels a
-// grey of that channel of it.
+// What's baked of pSurface, a material's surface: it, or for one of its
+// channels a grey of that channel of it.
 //
 //////////////////////////////////////////////////////////////////////////
-Ptr<CSolidTexture> CSculptPage::GetShown(void)
+Ptr<CSolidTexture> CSculptPage::GetShown(Ptr<CSolidTexture> pSurface)
 {
-	Ptr<CSolidTexture>	pSurface;
-
-	pSurface = mpNodes->GetGraph()->GetSurface();
 	switch (mpPanel->GetShow())
 	{
 	case SSH_Height:	return OMalloc<CSolidChannel>(SCH_Height, pSurface);
@@ -285,33 +277,52 @@ Ptr<CSolidTexture> CSculptPage::GetShown(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The stack makes its mesh again (Touch moves its modifier counter,
-// which the render scene makes a new mesh for) of the panel's shape,
-// unwrapped and baked as the panel says at the coarse density or the
-// whole one: only the baked show has relief, as a channel's greys and
-// the colour alone are the texture's own.  Its instance is in the scene
-// while there's a shape.  A coarse bake posts the whole one for
-// SCULPT_FINE_PAUSE from now, in place of any already posted.
+// What the page shows as it is now: the panel's shape and the material's
+// surface, baked as the panel says at the coarse density or the whole
+// one.  Only the baked show has relief, as a channel's greys and the
+// colour alone are the texture's own.  A light of no length leaves the
+// bake's as it was.
 //
 //////////////////////////////////////////////////////////////////////////
-void CSculptPage::Rebake(bool bCoarse)
+Ptr<CSculptBake> CSculptPage::DescribeBake(bool bCoarse)
 {
-	Ptr<CShape>		pShape;
 	SFloat32Vec3	sLight;
-	CChars			szName;
 
-	pShape = GetShape();
-	mpShapeEditor->mpShape = pShape;
-	mpShapeNormals->mpShape = pShape;
-	mpBake->mpTexture = GetShown();
-	mpBake->miSamples = bCoarse ? 1 : mpPanel->GetSamples();  //A coarse bake is to see a change as it's made: one sample a texel.
-	mpBake->mfRelief = (mpPanel->GetShow() == SSH_Baked) ? mpPanel->GetRelief() : 0.0f;
 	mpPanel->GetLight(&sLight);
 	if (sLight.Magnitude() > 0.0f)
 	{
 		sLight.Normalize();
-		mpBake->msLight = sLight;
 	}
+	else
+	{
+		sLight = GetBake()->msLight;
+	}
+	return OMalloc<CSculptBake>(GetShape(), GetShown(mpNodes->GetGraph()->GetSurface()),
+			SCULPT_TEXELS_PER_UNIT * (bCoarse ? SCULPT_COARSE_SHARE : 1.0f),
+			bCoarse ? 1 : mpPanel->GetSamples(),  //A coarse bake is to see a change as it's made: one sample a texel.
+			(mpPanel->GetShow() == SSH_Baked) ? mpPanel->GetRelief() : 0.0f, &sLight, bCoarse);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What the page shows is baked again, as it is now.  The stack is given
+// the bake's settings, and either makes its mesh again itself (Touch
+// moves its modifier counter, which the render scene makes a new mesh
+// for), or, with a baker, is left showing what it does until the baker's
+// thread has made the mesh (ShowBaked): the baker is given the bake with
+// a copy of the material, which nothing changes while it's read there.
+// With no shape there's nothing to make, and nothing asked for earlier
+// is shown.  A coarse bake posts the whole one for SCULPT_FINE_PAUSE from
+// now, in place of any already posted.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::Rebake(bool bCoarse)
+{
+	Ptr<CSculptBake>	pBake;
+
+	pBake = DescribeBake(bCoarse);
+	pBake->Apply(&mpMesh);
 
 	mpWindow->CancelPosted(this);
 	mbCoarse = bCoarse;
@@ -319,14 +330,97 @@ void CSculptPage::Rebake(bool bCoarse)
 	{
 		mpWindow->PostAfter(SCULPT_FINE_PAUSE, this, &CSculptPage::BakeFine);
 	}
-	mpUnwrap->mfTexelsPerUnit = SCULPT_TEXELS_PER_UNIT * (mbCoarse ? SCULPT_COARSE_SHARE : 1.0f);
-	mpMesh->mcModifiers.Touch();
-	if (pShape.IsNotNull() && !mbInScene)
+
+	if (mpBaker.IsNotNull() && pBake->mpShape.IsNotNull())
+	{
+		pBake->mpTexture = GetShown(mpNodes->GetGraph()->Copy()->GetSurface());
+		mapBakes.Add(pBake);
+		mpBaker->Bake(pBake);
+		mpWindow->PostAfter(SCULPT_BAKED_PAUSE, this, &CSculptPage::ShowBaked);
+	}
+	else
+	{
+		mapBakes.RemoveAll();
+		mpMesh->mcModifiers.Touch();
+		Show(pBake->mpShape.IsNotNull(), bCoarse);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The newest bake the baker has made is shown: its mesh is the stack's
+// output, as if the stack had made it.  That bake and those before it are
+// done with, as are any the baker dropped.  While there are others still
+// to be made this is posted again.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::ShowBaked(void)
+{
+	Ptr<CSculptBake>	pBake;
+	size				uiDone;
+	size				i;
+
+	uiDone = 0;
+	for (i = mapBakes.NumElements(); (i > 0) && (uiDone == 0); i--)
+	{
+		pBake = mapBakes.Get(i - 1);
+		if (pBake->IsBaked())
+		{
+			if (pBake->mpMesh.IsNotNull())
+			{
+				mpMesh->SetOutput(pBake->mpMesh);
+				Show(true, pBake->mbCoarse);
+			}
+			uiDone = i;
+		}
+	}
+	for (i = 0; i < uiDone; i++)
+	{
+		mapBakes.RemoveAt(0);
+	}
+	for (i = mapBakes.NumElements(); i > 0; i--)
+	{
+		if (mapBakes.Get(i - 1)->IsDropped())
+		{
+			mapBakes.RemoveAt(i - 1);
+		}
+	}
+
+	if (IsBaking())
+	{
+		mpWindow->PostAfter(SCULPT_BAKED_PAUSE, this, &CSculptPage::ShowBaked);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CSculptPage::IsBaking(void)
+{
+	return mapBakes.NumElements() > 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The view is told what it shows now: the editor's instance is in the
+// scene while there's a shape, and the status says what of, and whether
+// at the coarse density.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::Show(bool bShape, bool bCoarse)
+{
+	CChars	szName;
+
+	if (bShape && !mbInScene)
 	{
 		mpScene->mapInstances.Add(SculptInstance(mpMesh));
 		mbInScene = true;
 	}
-	else if (pShape.IsNull() && mbInScene)
+	else if (!bShape && mbInScene)
 	{
 		mpScene->mapInstances.RemoveAll();
 		mbInScene = false;
@@ -346,7 +440,7 @@ void CSculptPage::Rebake(bool bCoarse)
 		szName.Append(miSpheres);
 		szName.Append((miSpheres == 1) ? " sphere" : " spheres");
 	}
-	if (mbCoarse)
+	if (bCoarse)
 	{
 		szName.Append(", coarse");
 	}
@@ -509,13 +603,35 @@ void CSculptPage::PanelChanged(void)
 
 
 Ptr<CSculptPanel> CSculptPage::GetPanel(void) const { return mpPanel; }
-Ptr<CMeshBake> CSculptPage::GetBake(void) const { return mpBake; }
-void CSculptPage::SetJobs(CJobs* pcJobs) { mpBake->SetJobs(pcJobs); }
+Ptr<CMeshBake> CSculptPage::GetBake(void) { return mpMesh->mcModifiers.GetModifier<CMeshBake>(); }
+void CSculptPage::SetJobs(CJobs* pcJobs) { GetBake()->SetJobs(pcJobs); }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// What's shown is baked at the coarse density: the whole one is to come.
+// Bakes are pBaker's thread's to make from now; with NULL, the stack's
+// own again.  What the page shows is asked for again from whichever it
+// is.  Given a baker, the editor's instance leaves the scene until the
+// baker has made that, so that nothing asks the stack for a mesh it
+// hasn't made, which it would make then and there.
+//
+//////////////////////////////////////////////////////////////////////////
+void CSculptPage::SetBaker(Ptr<CSculptBaker> pBaker)
+{
+	mpBaker = pBaker;
+	if (mpBaker.IsNotNull() && mbInScene)
+	{
+		mpScene->mapInstances.RemoveAll();
+		mbInScene = false;
+	}
+	Rebake(mbCoarse);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The last bake asked for is at the coarse density: the whole one is to
+// come.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CSculptPage::IsCoarse(void) const

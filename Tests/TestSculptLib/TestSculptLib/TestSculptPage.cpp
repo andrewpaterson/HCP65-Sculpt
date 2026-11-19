@@ -18,9 +18,12 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "BaseLib/FileUtil.h"
+#include "BaseLib/NativeThread.h"
+#include "BaseLib/Timer.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/PNGWriter.h"
 #include "WindowLib/Canvas.h"
@@ -28,6 +31,7 @@ along with Codaphela TestSculptLib.  If not, see <http://www.gnu.org/licenses/>.
 #include "ProceduralLib/SolidFlat.h"
 #include "ProceduralLib/SolidMaterialFile.h"
 #include "ProceduralLib/SolidMaterials.h"
+#include "ThreadLib/WorkerThreadJobs.h"
 #include "SculptLib/SculptMaterials.h"
 #include "SculptLib/SculptPage.h"
 #include "SculptTestWindow.h"
@@ -439,6 +443,11 @@ struct STestSculptRebake
 {
 	CSculptPage*	pcPage;  //Held by the test.
 	uint32			auiSeen[4];  //The middle of the view after each change has been drawn.
+	int32			iTick;  //The ticks counted: those at which no baker had anything of the page's still to make.
+	int32			iBaking;  //The ticks at which one had.
+	int64			iTicked;  //When the last tick ended, in microseconds.
+	int64			iLongest;  //The longest the window has taken from one tick's end to the next's start: a frame.
+	bool			bMarble;  //Marble follows the colours, coarsely and then finely: what a frame is timed with.
 };
 
 
@@ -446,18 +455,35 @@ struct STestSculptRebake
 //
 // The material is made red, then green coarsely, then green finely, then
 // blue, a few ticks apart so each is drawn; the middle of the view is
-// noted before each change.
+// noted before each change.  While a baker's thread is still making what
+// a change asked for, the ticks wait for it and aren't counted (ten
+// seconds of them stop the test).  With bMarble the material is then
+// marble, coarsely and then finely: a bake that takes as long as Sculpt's.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestSculptPageRebakeTick(Ptr<CWindow> pWindow, int32 iTick, void* pvData)
+static bool TestSculptPageRebakeTick(Ptr<CWindow> pWindow, int32 iWindowTick, void* pvData)
 {
 	STestSculptRebake*	psTest;
 	Ptr<CSceneView>		pView;
 	SSolidSample		sSample;
 	SInt32Vec2			sSize;
 	int32				iStep;
+	int32				iTick;
 
 	psTest = (STestSculptRebake*)pvData;
+	if ((psTest->iTicked != 0) && (GetDebugMicroseconds() - psTest->iTicked > psTest->iLongest))
+	{
+		psTest->iLongest = GetDebugMicroseconds() - psTest->iTicked;
+	}
+	if (psTest->pcPage->IsBaking())
+	{
+		ThreadSleep(1);
+		psTest->iBaking++;
+		psTest->iTicked = GetDebugMicroseconds();
+		return psTest->iBaking < 10000;
+	}
+	psTest->iTick++;
+	iTick = psTest->iTick;
 	pView = psTest->pcPage->GetView();
 	iStep = iTick / 4;
 	if ((iTick % 4 == 0) && (iStep >= 1) && (iStep <= 4))
@@ -491,8 +517,17 @@ static bool TestSculptPageRebakeTick(Ptr<CWindow> pWindow, int32 iTick, void* pv
 	{
 		sSize = pView->GetActualSize();
 		psTest->auiSeen[3] = SculptTestViewPixel(pView->GetDraw()->GetImage(), sSize.x / 2, sSize.y / 2);
+		if (psTest->bMarble)
+		{
+			psTest->pcPage->SetMaterial(MakeSolidMarble(1));
+		}
 	}
-	return iTick < 20;
+	if (iTick == 24)
+	{
+		psTest->pcPage->BakeFine();
+	}
+	psTest->iTicked = GetDebugMicroseconds();
+	return iTick < (psTest->bMarble ? 28 : 20);
 }
 
 
@@ -501,11 +536,25 @@ static bool TestSculptPageRebakeTick(Ptr<CWindow> pWindow, int32 iTick, void* pv
 // What's drawn is the material as it now is, after each change and after
 // the coarse bake gives way to the whole one: with the rasteriser and,
 // where there's a device for it, with Vulkan.  The view's bytes are B, G,
-// R.
+// R.  With bBaker each bake is made on a baker's thread and shown when
+// it's made: the same is drawn, the window's thread having waited for
+// none of them in its frames.
+//
+// SCULPT_BAKE_REPORT prints the longest frame of each, baked on a thread
+// for each the hardware runs at once as the app bakes.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestSculptPageRebaked(bool bVulkan)
+void TestSculptPageRebaked(bool bVulkan, bool bBaker)
 {
+	CWorkerThreadJobs	cJobs;
+	CJobs*				pcJobs;
+
+	pcJobs = NULL;
+	if (getenv("SCULPT_BAKE_REPORT") != NULL)
+	{
+		cJobs.Init();
+		pcJobs = &cJobs;
+	}
 	ObjectsInit();
 	{
 		Ptr<CWinRefWindowFactory>	pFactory;
@@ -513,20 +562,45 @@ void TestSculptPageRebaked(bool bVulkan)
 		Ptr<CFontColours>			pFontColours;
 		Ptr<CWindowTheme>			pTheme;
 		Ptr<CSculptPage>			pPage;
+		Ptr<CSculptBaker>			pBaker;
 		SDialogLook					sLook;
 		STestSculptRebake			sTest;
+		size						uiThreadErrors;
 		size						i;
 
+		uiThreadErrors = ObjectsNumThreadErrors();
 		pWindow = SculptTestWindow(pFactory, 600, 500, TestSculptPageRebakeTick, &sTest);
 		AssertTrue(SculptTestLook(pWindow, &sLook, pFontColours, pTheme));
 		pPage = OMalloc<CSculptPage>(pWindow, &sLook, pFontColours, bVulkan);
+		pPage->SetJobs(pcJobs);
+		if (bBaker)
+		{
+			AssertTrue(ObjectsLocking(true));
+			pBaker = OMalloc<CSculptBaker>(pcJobs);
+			ORoot()->Add(pBaker);
+			AssertTrue(pBaker->Start());
+			pPage->SetBaker(pBaker);
+		}
 		sTest.pcPage = &pPage;
+		sTest.iTick = 0;
+		sTest.iBaking = 0;
+		sTest.iTicked = 0;
+		sTest.iLongest = 0;
+		sTest.bMarble = pcJobs != NULL;
 		for (i = 0; i < 4; i++)
 		{
 			sTest.auiSeen[i] = 0;
 		}
 		pWindow->SetContainer(pPage);
 		pWindow->Show();
+		AssertInt(sTest.bMarble ? 28 : 20, sTest.iTick);
+		AssertFalse(pPage->IsBaking());
+		AssertTrue(bBaker == (sTest.iBaking > 0));
+		if (pcJobs != NULL)
+		{
+			printf("The page's longest frame, drawn by %s, baked by %s: %d ms\n", bVulkan ? "Vulkan" : "the rasteriser", bBaker ? "a baker's thread" : "the window's thread", (int)(sTest.iLongest / 1000));
+			fflush(stdout);
+		}
 
 		//Red; green, coarse and whole; blue.  Each is mostly its own colour, shaded.
 		AssertTrue(((sTest.auiSeen[0] >> 16) & 0xFF) > 2 * (((sTest.auiSeen[0] >> 8) & 0xFF) + (sTest.auiSeen[0] & 0xFF)));
@@ -534,6 +608,14 @@ void TestSculptPageRebaked(bool bVulkan)
 		AssertTrue(((sTest.auiSeen[2] >> 8) & 0xFF) > 2 * (((sTest.auiSeen[2] >> 16) & 0xFF) + (sTest.auiSeen[2] & 0xFF)));
 		AssertTrue((sTest.auiSeen[3] & 0xFF) > 2 * (((sTest.auiSeen[3] >> 16) & 0xFF) + ((sTest.auiSeen[3] >> 8) & 0xFF)));
 
+		if (bBaker)
+		{
+			pBaker->Stop();
+			ORoot()->Remove(pBaker);
+			pBaker = NULL;
+			AssertTrue(ObjectsLocking(false));
+			AssertSize(uiThreadErrors, ObjectsNumThreadErrors());
+		}
 		pPage = NULL;
 		sLook.Kill();
 		pTheme = NULL;
@@ -543,6 +625,10 @@ void TestSculptPageRebaked(bool bVulkan)
 	AssertTrue(ORoot()->RemoveAll());
 	ObjectsFlush();
 	ObjectsKill();
+	if (pcJobs != NULL)
+	{
+		cJobs.Kill();
+	}
 }
 
 
@@ -556,8 +642,13 @@ void TestSculptPage(void)
 
 	TestSculptPageSpheres();
 	TestSculptPageFile();
-	TestSculptPageRebaked(false);
-	TestSculptPageRebaked(true);
+	TestSculptPageRebaked(false, false);
+	TestSculptPageRebaked(false, true);
+#ifndef __SANITIZE_THREAD__
+	//The driver Vulkan finds has threads of its own, which ThreadSanitizer stops in.
+	TestSculptPageRebaked(true, false);
+	TestSculptPageRebaked(true, true);
+#endif // !__SANITIZE_THREAD__
 
 	TestStatistics();
 }

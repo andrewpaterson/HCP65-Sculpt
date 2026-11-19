@@ -287,8 +287,17 @@ Outstanding (2026-11-17, when the work was left for something else; pick up from
      A material's texture (TextureSample) and a shape's Distance must not copy, assign or let go of a Ptr: the
      pool's threads aren't registered to.  A Debug build says when one does, and TestSculptBakeJobs bakes every
      starting material that way.
-     Left: the whole bake still holds the window while it runs (now under a fifth of a second); if that shows, it's
-     run behind the window and shown when it's done.
+     Left then: the whole bake still held the window while it ran (under a fifth of a second).
+     Done 2026-11-19: every bake is made behind the window, on a baker's thread (SculptLib's CSculptBaker: a worker
+     with an object system of its own, step 25 of the thread safety plan, whose mesh the main one adopts), from a copy
+     of the material so that the page may go on changing its own, and is shown when it's made (CSculptPage::SetBaker
+     and ShowBaked; the page looks every 2 ms while one is being made).  A bake at the whole density still being made
+     when a change comes is stopped for the change's (CMeshBake::SetStop).  The window's longest frame while marble
+     is changed and baked, with the machine busy with other work: about 70 ms with the page baking in its frames, 13
+     ms with the baker, which is the new mesh cooked and given to the renderer (TestSculptLib's SCULPT_BAKE_REPORT).
+     The objects' locking is on while the app runs; HCP65_SCULPT_NO_BAKER has it bake in its frames as it did.
+     A cavity is copied with the rest of a graph now (SolidCopy), where a copy shared it: so Duplicate copies a
+     cavity's node, and Undo puts back a cavity's reach.
      Already mended before: the node editor painted its whole back at every layout of the window (half the time of
      turning the view; now only when a link's ends or its size change), Vulkan's frame was read back from slow memory
      (8.4 ms to 0.4 ms), and a coarse bake is one sample a texel.  Turning the view is about 10 ms a frame.

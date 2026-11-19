@@ -57,8 +57,12 @@ enum ESculptAsked
 //What a menu item asks for is done from the window's tick (Tick), not from the click, as a dialog reads the input itself:
 //File's Open, Save, Save As and Export Material, which ask for a file.
 //
+//The page's bakes are made on a thread of their own (SculptLib's CSculptBaker), so the window is drawn, and answers,
+//without waiting for one: the objects' locking is on while the app runs.  The baker is stopped when the window closes.
+//
 //From the environment: HCP65_SCULPT_SNAPSHOT=file saves the window as a PNG there once it's been drawn, and
 //HCP65_SCULPT_EXIT then closes it, which is how it's looked at on the reference screen (HCP65SculptRef).
+//HCP65_SCULPT_NO_BAKER has the page bake on the window's thread, as it did before there was a baker.
 class CSculptApp : public CObject
 {
 CONSTRUCTABLE(CSculptApp);
@@ -84,6 +88,7 @@ protected:
 	Ptr<CMenuItem>				mpUndo;
 	Ptr<CMenuItem>				mpRedo;
 	Ptr<CSculptPage>			mpPage;
+	Ptr<CSculptBaker>			mpBaker;  //Whose thread bakes for the page; NULL if the page bakes itself.
 	SDialogLook					msDialogLook;
 	Ptr<CInput>					mpInput;
 	Ptr<CWindowInputSource>		mpInputSource;

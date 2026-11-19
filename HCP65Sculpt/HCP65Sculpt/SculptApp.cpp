@@ -42,10 +42,12 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SCULPT_SNAPSHOT_VARIABLE	"HCP65_SCULPT_SNAPSHOT"
 #define SCULPT_EXIT_VARIABLE		"HCP65_SCULPT_EXIT"
+#define SCULPT_NO_BAKER_VARIABLE	"HCP65_SCULPT_NO_BAKER"
 
 
 //The threads a page's bake shares its rows among, one for each the hardware runs at once.  They never touch an
-//object's count: the window's thread holds everything they read, and waits for them (SupportLib's MeshBake.h).
+//object's count: the thread that bakes (the baker's, or the window's) holds everything they read, and waits for them
+//(SupportLib's MeshBake.h).
 static CWorkerThreadJobs	gcSculptJobs;
 
 
@@ -101,6 +103,14 @@ bool CSculptApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeInput* pcNa
 
 		mpPage = OMalloc<CSculptPage>(mpWindow, &msDialogLook, mpFontColours);
 		mpPage->SetJobs(&gcSculptJobs);
+		if ((getenv(SCULPT_NO_BAKER_VARIABLE) == NULL) && ObjectsLocking(true))
+		{
+			mpBaker = OMalloc<CSculptBaker>(&gcSculptJobs);
+			if (mpBaker->Start())
+			{
+				mpPage->SetBaker(mpBaker);
+			}
+		}
 		MakeMenus();
 		mpMain = OMalloc<CGridContainer>(mpWindow);
 		mpMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
@@ -215,6 +225,7 @@ void CSculptApp::Class(void)
 	M_Pointer(mpUndo);
 	M_Pointer(mpRedo);
 	M_Pointer(mpPage);
+	M_Pointer(mpBaker);
 	U_Data(SDialogLook, msDialogLook);
 	M_Pointer(mpInput);
 	M_Pointer(mpInputSource);
@@ -265,8 +276,10 @@ bool CSculptApp::Load(CObjectReader* pcFile)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Runs the window until it is closed (if Setup worked), then takes the
-// menu's listener and the component input out of the window.
+// Runs the window until it is closed (if Setup worked), then stops the
+// baker's thread (here, where no Free is running: CSculptBaker says why)
+// and takes the menu's listener and the component input out of the
+// window.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CSculptApp::Run(void)
@@ -274,6 +287,12 @@ bool CSculptApp::Run(void)
 	if (mbValid)
 	{
 		mpWindow->Show();
+	}
+
+	if (mpBaker.IsNotNull())
+	{
+		mpBaker->Stop();
+		ObjectsLocking(false);
 	}
 
 	if (mbInputs)
@@ -411,13 +430,21 @@ void CSculptApp::Report(const char* szMessage, const char* szFilename)
 //////////////////////////////////////////////////////////////////////////
 //
 // Counts down to the snapshot, keeping the window ticking, then saves
-// what the window shows, and exits if that's asked for too.
+// what the window shows, and exits if that's asked for too.  The ticks
+// while a baker is still making what the page is to show don't count.
 //
 //////////////////////////////////////////////////////////////////////////
 void CSculptApp::Snapshot(Ptr<CWindow> pWindow)
 {
 	CFileUtil		cFileUtil;
 	const char*		szFilename;
+
+	if (mpPage->IsBaking())
+	{
+		//What's to be seen is still being made on the baker's thread: the ticks are counted from when it's shown.
+		pWindow->RequestTick(1);
+		return;
+	}
 
 	if (miSnapshotTicks > 0)
 	{

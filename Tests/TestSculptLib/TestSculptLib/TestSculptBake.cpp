@@ -242,6 +242,164 @@ void TestSculptBakeRegisteredJobs(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A bake of a unit sphere and pTexture, as a page would describe it.
+//
+//////////////////////////////////////////////////////////////////////////
+static Ptr<CSculptBake> TestSculptBakeDescribed(Ptr<CSolidTexture> pTexture, float32 fTexelsPerUnit)
+{
+	Ptr<CSphere>	pSphere;
+	SFloat32Vec3	sCentre;
+	SFloat32Vec3	sLight;
+
+	sCentre.Init(0, 0, 0);
+	pSphere = OMalloc<CSphere>(&sCentre, SCULPT_SPHERE_RADIUS);
+	sLight.Init(MESH_BAKE_LIGHT_X, MESH_BAKE_LIGHT_Y, MESH_BAKE_LIGHT_Z);
+	sLight.Normalize();
+	return OMalloc<CSculptBake>(pSphere, pTexture, fTexelsPerUnit, 2, 1.0f, &sLight, false);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The image a made bake's mesh is textured with.
+//
+//////////////////////////////////////////////////////////////////////////
+static Ptr<CImage> TestSculptBakeImage(Ptr<CSculptBake> pBake)
+{
+	return pBake->mpMesh->mcMaterials.mapMaterials.Get(0)->GetImage(MI_Diffuse)->mpImage;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Waits for a baker to have made pBake, or dropped it: false if it does
+// neither in ten seconds.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestSculptBakeWait(Ptr<CSculptBake> pBake)
+{
+	int32	i;
+
+	for (i = 0; (i < 10000) && !pBake->IsBaked() && !pBake->IsDropped(); i++)
+	{
+		ThreadSleep(1);
+	}
+	return pBake->IsBaked() || pBake->IsDropped();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A baker's thread makes a bake's mesh in an object system of its own
+// (level 3 of CommonLibraries' StandardLib/ThreadSafetyPlan.txt) and the
+// main one adopts it: the mesh, its material and its image are main
+// objects, the image is the one the bake makes on this thread, the
+// baker's own objects are gone, and no thread is told it did wrong.  A
+// bake given while another waits takes its place; one given to a baker
+// with no thread is dropped at once; and the baker holds what it was
+// given, so a bake let go of here is still made.  A bake stopped is
+// dropped, with no mesh; the baker stops one at the whole density for
+// the bake that follows it.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestSculptBaker(void)
+{
+	CWorkerThreadJobs	cJobs;
+	Ptr<CSolidTexture>	pMaterial;
+	Ptr<CSculptBaker>	pBaker;
+	Ptr<CSculptBake>	pAlone;
+	Ptr<CSculptBake>	pBake;
+	Ptr<CSculptBake>	apBakes[3];
+	Ptr<CMaterial>		pBaked;
+	size				uiThreadErrors;
+	int64				iObjects;
+	size				i;
+
+	uiThreadErrors = ObjectsNumThreadErrors();
+	iObjects = gcObjects.NumMemoryIndexes();
+	pMaterial = MakeSolidMarble(1);
+	ORoot()->Add(pMaterial);
+	pAlone = TestSculptBakeDescribed(pMaterial, 16.0f);
+	pAlone->Make(NULL);
+	AssertTrue(pAlone->IsBaked());
+	AssertTrue(pAlone->mpMesh->NumFaces() > 0);
+
+	//Stopped before it's made, it isn't.
+	pBake = TestSculptBakeDescribed(pMaterial, 16.0f);
+	pBake->Stop();
+	pBake->Make(NULL);
+	AssertTrue(pBake->IsDropped());
+	AssertTrue(pBake->mpMesh.IsNull());
+
+	//No thread: dropped.
+	pBaker = OMalloc<CSculptBaker>(&cJobs);
+	ORoot()->Add(pBaker);
+	pBake = TestSculptBakeDescribed(pMaterial, 16.0f);
+	AssertInt(SBS_Described, pBake->GetState());
+	pBaker->Bake(pBake);
+	AssertTrue(pBake->IsDropped());
+	AssertFalse(pBaker->Start());  //Nor a thread without the locking.
+
+	AssertTrue(ObjectsLocking(true));
+	cJobs.Init(4);
+	AssertTrue(pBaker->Start());
+	AssertFalse(pBaker->Start());
+
+	pBake = TestSculptBakeDescribed(pMaterial, 16.0f);
+	pBaker->Bake(pBake);
+	AssertTrue(TestSculptBakeWait(pBake));
+	AssertTrue(pBake->IsBaked());
+	AssertTrue(pBake->mpMesh->GetObjectsThisIn() == &gcObjects);
+	pBaked = pBake->mpMesh->mcMaterials.mapMaterials.Get(0);
+	AssertTrue(pBaked->GetObjectsThisIn() == &gcObjects);
+	AssertTrue(TestSculptBakeImage(pBake)->GetObjectsThisIn() == &gcObjects);
+	AssertInt(pAlone->mpMesh->NumFaces(), pBake->mpMesh->NumFaces());
+	AssertTrue(TestSculptBakeSameImage(TestSculptBakeImage(pAlone), TestSculptBakeImage(pBake)));
+	pBaked = NULL;
+
+	//Three at once: the last is made, and each of the others is made, or was dropped or stopped for the one after it.
+	for (i = 0; i < 3; i++)
+	{
+		apBakes[i] = TestSculptBakeDescribed(pMaterial, 32.0f);
+		pBaker->Bake(apBakes[i]);
+	}
+	for (i = 0; i < 3; i++)
+	{
+		AssertTrue(TestSculptBakeWait(apBakes[i]));
+	}
+	AssertTrue(apBakes[2]->IsBaked());
+	AssertTrue(apBakes[2]->mpMesh->NumFaces() > 0);
+	AssertTrue(apBakes[0]->IsDropped() == apBakes[0]->mpMesh.IsNull());
+	AssertTrue(apBakes[1]->IsDropped() == apBakes[1]->mpMesh.IsNull());
+	for (i = 0; i < 3; i++)
+	{
+		apBakes[i] = NULL;
+	}
+
+	//Let go of here, it is the baker's to make or to drop: Stop waits for it.
+	pBake = TestSculptBakeDescribed(pMaterial, 16.0f);
+	pBaker->Bake(pBake);
+	pBake = NULL;
+
+	pBaker->Stop();
+	cJobs.Kill();
+	AssertFalse(pBaker->IsStarted());
+	AssertSize(0, ObjectsNumThreads());
+	ObjectsCollect();
+	AssertTrue(ObjectsLocking(false));
+	AssertSize(uiThreadErrors, ObjectsNumThreadErrors());
+
+	//Nothing is left of the bakes, here or the baker's.
+	pAlone = NULL;
+	pBaker = NULL;
+	pMaterial = NULL;
+	ORoot()->RemoveAll();
+	AssertLong(iObjects, gcObjects.NumMemoryIndexes());
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // SCULPT_BAKE_REPORT prints what a sphere takes to bake with each
 // material at the densities a change could be shown at, on this thread
 // and then on a thread for each the hardware runs at once.  Without it,
@@ -331,6 +489,7 @@ void TestSculptBake(void)
 	TestSculptBakeReport();
 	TestSculptBakeJobs();
 	TestSculptBakeRegisteredJobs();
+	TestSculptBaker();
 
 	ObjectsDiscard();
 	ObjectsKill(false);

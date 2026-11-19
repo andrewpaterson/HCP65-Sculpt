@@ -33,6 +33,12 @@
     <ClCompile Include="SculptMaterials.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="SculptBake.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SculptBaker.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="SculptDocument.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -63,6 +69,12 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SculptMaterials.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SculptBake.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SculptBaker.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SculptDocument.h">
