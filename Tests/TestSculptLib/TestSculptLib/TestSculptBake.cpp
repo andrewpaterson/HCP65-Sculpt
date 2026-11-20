@@ -314,6 +314,7 @@ void TestSculptBaker(void)
 	size				uiThreadErrors;
 	int64				iObjects;
 	size				i;
+	SLogConfig			sLogConfig;
 
 	uiThreadErrors = ObjectsNumThreadErrors();
 	iObjects = gcObjects.NumMemoryIndexes();
@@ -338,12 +339,16 @@ void TestSculptBaker(void)
 	AssertInt(SBS_Described, pBake->GetState());
 	pBaker->Bake(pBake);
 	AssertTrue(pBake->IsDropped());
+	sLogConfig = gcLogger.SetSilent();
 	AssertFalse(pBaker->Start());  //Nor a thread without the locking.
+	gcLogger.SetConfig(&sLogConfig);
 
 	AssertTrue(ObjectsLocking(true));
 	cJobs.Init(4);
 	AssertTrue(pBaker->Start());
+	sLogConfig = gcLogger.SetSilent();
 	AssertFalse(pBaker->Start());
+	gcLogger.SetConfig(&sLogConfig);
 
 	pBake = TestSculptBakeDescribed(pMaterial, 16.0f);
 	pBaker->Bake(pBake);
