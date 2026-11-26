@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Plans">
+      <UniqueIdentifier>{e22c2a16-c1c3-4363-b3f0-aacc68af564a}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{85a80237-f931-4395-8921-8ed8b3fb905f}</UniqueIdentifier>
     </Filter>
@@ -23,5 +26,10 @@
     <ClInclude Include="SculptTick.h">
       <Filter>Source</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\SculptPlan.txt">
+      <Filter>Plans</Filter>
+    </None>
   </ItemGroup>
 </Project>
