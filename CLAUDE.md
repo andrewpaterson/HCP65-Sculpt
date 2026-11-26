@@ -5,7 +5,10 @@ Blender's Shading workspace.  It needs CommonLibraries checked out beside it (`.
 
 ## Layout
 
-- `SculptPlan.txt`: the plan, its decisions and what is built.  Start there.
+- Design pages: `Libraries/SculptLib/Docs/sculpt` (`index.md`: what it is and how to build, run and see it;
+  `design.md`: how it works, its speed, decisions and what isn't done); the website gathers them.  Read them first.
+- `SculptPlan.txt`: the plan, still being built from; its "Questions for the user" are kept as they come up, and work
+  carries on with the answer assumed in brackets.
 - `HCP65Sculpt/`: the app.  `Libraries/SculptLib`: its library.  `Tests/TestSculptLib`.
 - The texture generators and isosurfaces it shows are CommonLibraries' ProceduralLib
   (`Libraries/ProceduralLib/TexturePlan.txt`, `Isosurface.txt`); shapes and drawing are SupportLib.
@@ -20,6 +23,17 @@ Blender's Shading workspace.  It needs CommonLibraries checked out beside it (`.
   (`RelWithDebInfo` in `../build/HCP65SculptRelDbg` for profiling).
 - Tests build with CMake as in CommonLibraries (`cmake -S Tests/TestSculptLib -B ../build/TestSculptLib64
   -DBASELIB_64=ON`, then `cmake --build` and `ctest --test-dir`).
+
+## Recipes
+
+- Profiling: `perf` and attaching gdb don't work on this machine (`perf_event_paranoid` 4, `ptrace_scope` 1).  Sample
+  with an `LD_PRELOAD` library instead: a `SIGALRM` interval timer whose handler writes `backtrace()` to a file,
+  symbolised with `addr2line` against the base address in `/proc/<pid>/maps`.  The app sometimes fails to start
+  under it: try again.
+- Real input: a Xephyr window is allowed for Sculpt (the user, 2026-11-17), driven as HCP65-IDE's `CLAUDE.md` says;
+  space XTest events at least about 120 ms apart or they are lost.  If the user closes the window, don't reopen it.
+- A private copy of a test folder links its inputs file by file: never symlink a repository folder into it (a
+  runner once followed the link into the real repository).
 
 ## Working in these repositories
 
