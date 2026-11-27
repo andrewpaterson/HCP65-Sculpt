@@ -9,7 +9,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="HCP65Sculpt.cpp">
+    <ClCompile Include="HCP65Sculpt_Windows.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="HCP65Sculpt_Linux.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="SculptApp.cpp">

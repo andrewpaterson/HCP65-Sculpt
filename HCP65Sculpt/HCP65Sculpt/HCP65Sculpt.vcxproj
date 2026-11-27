@@ -236,7 +236,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="HCP65Sculpt.cpp" />
+    <ClCompile Include="HCP65Sculpt_Windows.cpp" />
+    <ClCompile Include="HCP65Sculpt_Linux.cpp" />
     <ClCompile Include="SculptApp.cpp" />
     <ClCompile Include="SculptTick.cpp" />
   </ItemGroup>

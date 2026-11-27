@@ -16,7 +16,7 @@
 # Add -DBASELIB_ASAN=ON for AddressSanitizer and LeakSanitizer.
 #
 # Source lists are read from the .vcxproj files so Visual Studio stays the source of truth.  Of HCP65Sculpt.vcxproj's
-# sources HCP65Sculpt.cpp (WinMain) is Windows only; HCP65SculptLinux.cpp is the X11 main and HCP65SculptRef.cpp the
+# sources HCP65Sculpt_Windows.cpp (WinMain) is Windows only; HCP65Sculpt_Linux.cpp is the X11 main and HCP65SculptRef.cpp the
 # reference screen's.
 
 cmake_minimum_required(VERSION 3.16)
@@ -111,7 +111,7 @@ vcxproj_sources(X11LIB_SOURCES "${X11LIB_DIR}/X11Lib.vcxproj")
 vcxproj_sources(SCENEVIEWLIB_SOURCES "${SCENEVIEWLIB_DIR}/SceneViewLib.vcxproj")
 vcxproj_sources(WINREFLIB_SOURCES "${WINREFLIB_DIR}/WinRefLib.vcxproj")
 vcxproj_sources(SCULPTLIB_SOURCES "${SCULPTLIB_DIR}/SculptLib.vcxproj")
-vcxproj_sources(SCULPT_SOURCES "${SCULPT_DIR}/HCP65Sculpt.vcxproj" EXCLUDE "HCP65Sculpt.cpp")
+vcxproj_sources(SCULPT_SOURCES "${SCULPT_DIR}/HCP65Sculpt.vcxproj" EXCLUDE "HCP65Sculpt_Windows.cpp" "HCP65Sculpt_Linux.cpp")
 
 
 # Matches the Visual Studio configurations, except BREAK_ON_ERROR and
@@ -206,7 +206,7 @@ add_library(HCP65SculptLib STATIC ${SCULPT_SOURCES})
 target_include_directories(HCP65SculptLib PUBLIC "${SCULPT_DIR}")
 target_link_libraries(HCP65SculptLib PUBLIC SculptLib SceneViewLib WindowLib InputLib VulkanLib ProceduralLib RasterRenderLib RenderLib RasterLib SupportLib StandardLib ThreadLib BaseLib)
 
-add_executable(HCP65Sculpt "${SCULPT_DIR}/HCP65SculptLinux.cpp")
+add_executable(HCP65Sculpt "${SCULPT_DIR}/HCP65Sculpt_Linux.cpp")
 target_link_libraries(HCP65Sculpt PRIVATE HCP65SculptLib X11Lib)
 
 add_executable(HCP65SculptRef "${SCULPT_DIR}/HCP65SculptRef.cpp")
