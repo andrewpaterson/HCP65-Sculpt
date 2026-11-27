@@ -77,6 +77,7 @@ along with Codaphela SculptLib.  If not, see <http://www.gnu.org/licenses/>.
 //
 //Save writes all of it but the view to one file (a CSculptDocument), and Open reads one, or a file of a material alone;
 //ExportMaterial writes the material alone, as another program reads it (ProceduralLib's ReadSolidMaterial).
+//Design page: Docs/sculpt/design.md
 class CSculptPage : public CGridContainer
 {
 CONSTRUCTABLE(CSculptPage);

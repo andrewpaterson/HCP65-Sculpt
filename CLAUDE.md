@@ -7,6 +7,8 @@ Blender's Shading workspace.  It needs CommonLibraries checked out beside it (`.
 
 - Design pages: `Libraries/SculptLib/Docs/sculpt` (`index.md`: what it is and how to build, run and see it;
   `design.md`: how it works, its speed, decisions and what isn't done); the website gathers them.  Read them first.
+- A design page's main classes name it in their headers, one line above the class, `//Design page: Docs/...`
+  (`DocsPlan.txt` G1); a new design page adds it to its own.
 - `SculptPlan.txt`: the plan, still being built from; its "Questions for the user" are kept as they come up, and work
   carries on with the answer assumed in brackets.
 - `HCP65Sculpt/`: the app.  `Libraries/SculptLib`: its library.  `Tests/TestSculptLib`.

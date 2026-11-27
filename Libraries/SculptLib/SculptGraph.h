@@ -58,6 +58,7 @@ public:
 //
 //Copy is another graph of other textures that are as this one's and linked as they are, its nodes in the same order and
 //places: what undo keeps.  A texture of a class that can't be made new (SolidShow.h) is shared, not copied.
+//Design page: Docs/sculpt/design.md
 class CSculptGraph : public CObject
 {
 CONSTRUCTABLE(CSculptGraph);
