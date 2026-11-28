@@ -15,6 +15,9 @@
     <ClCompile Include="HCP65Sculpt_Linux.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="HCP65SculptRef.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="SculptApp.cpp">
       <Filter>Source</Filter>
     </ClCompile>

@@ -42,7 +42,7 @@ along with Codaphela HCP65Sculpt.  If not, see <http://www.gnu.org/licenses/>.
 // it can press a key or move the pointer.
 //
 //////////////////////////////////////////////////////////////////////////
-int main(int argc, char* argv[])
+int __cdecl main(int argc, char* argv[])
 {
 	bool	bResult;
 
